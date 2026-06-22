@@ -1,0 +1,98 @@
+/* ==========================================================================
+   UniSentinel base layer — reset, base typography, shared tone system.
+   Loaded first in styles.css (before component styles).
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--us-font-sans);
+  font-size: var(--us-text-md);
+  line-height: var(--us-leading-normal);
+  color: var(--us-color-text);
+  background-color: var(--us-color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Optional explicit root wrapper. Tokens are global on :root, so this is only
+   needed when embedding the DS inside a host page that resets typography. */
+.us-root {
+  font-family: var(--us-font-sans);
+  font-size: var(--us-text-md);
+  line-height: var(--us-leading-normal);
+  color: var(--us-color-text);
+}
+
+.us-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Shared tone system. Any component sets `data-us-tone="<tone>"` on its root
+   to pull the matching semantic color set; component CSS reads the
+   --us-tone-* custom properties. Keeps Badge / Tag / Alert / Progress / Stat
+   coloring in one place.
+   -------------------------------------------------------------------------- */
+[data-us-tone="neutral"] {
+  --us-tone-subtle-bg: var(--us-neutral-100);
+  --us-tone-subtle-fg: var(--us-neutral-700);
+  --us-tone-subtle-border: var(--us-neutral-200);
+  --us-tone-solid-bg: var(--us-neutral-700);
+  --us-tone-solid-fg: var(--us-neutral-0);
+  --us-tone-accent: var(--us-neutral-500);
+}
+[data-us-tone="brand"] {
+  --us-tone-subtle-bg: var(--us-navy-50);
+  --us-tone-subtle-fg: var(--us-navy-800);
+  --us-tone-subtle-border: var(--us-navy-100);
+  --us-tone-solid-bg: var(--us-navy-800);
+  --us-tone-solid-fg: var(--us-neutral-0);
+  --us-tone-accent: var(--us-navy-600);
+}
+[data-us-tone="info"] {
+  --us-tone-subtle-bg: var(--us-info-50);
+  --us-tone-subtle-fg: var(--us-info-700);
+  --us-tone-subtle-border: var(--us-info-100);
+  --us-tone-solid-bg: var(--us-info-500);
+  --us-tone-solid-fg: var(--us-neutral-0);
+  --us-tone-accent: var(--us-info-500);
+}
+[data-us-tone="success"] {
+  --us-tone-subtle-bg: var(--us-success-50);
+  --us-tone-subtle-fg: var(--us-success-700);
+  --us-tone-subtle-border: var(--us-success-100);
+  --us-tone-solid-bg: var(--us-success-500);
+  --us-tone-solid-fg: var(--us-neutral-0);
+  --us-tone-accent: var(--us-success-500);
+}
+[data-us-tone="warning"] {
+  --us-tone-subtle-bg: var(--us-warning-50);
+  --us-tone-subtle-fg: var(--us-warning-700);
+  --us-tone-subtle-border: var(--us-warning-100);
+  --us-tone-solid-bg: var(--us-warning-500);
+  --us-tone-solid-fg: var(--us-neutral-0);
+  --us-tone-accent: var(--us-warning-600);
+}
+[data-us-tone="danger"] {
+  --us-tone-subtle-bg: var(--us-danger-50);
+  --us-tone-subtle-fg: var(--us-danger-700);
+  --us-tone-subtle-border: var(--us-danger-100);
+  --us-tone-solid-bg: var(--us-danger-500);
+  --us-tone-solid-fg: var(--us-neutral-0);
+  --us-tone-accent: var(--us-danger-500);
+}

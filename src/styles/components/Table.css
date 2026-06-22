@@ -1,0 +1,89 @@
+/* Table */
+.us-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--us-color-border);
+  border-radius: var(--us-radius-lg);
+  background-color: var(--us-color-surface);
+}
+
+.us-table {
+  --us-table-py: var(--us-space-3);
+  --us-table-px: var(--us-space-4);
+  --us-table-font: var(--us-text-md);
+
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--us-font-sans);
+  font-size: var(--us-table-font);
+  color: var(--us-color-text);
+}
+
+.us-table--sm {
+  --us-table-py: var(--us-space-2);
+  --us-table-px: var(--us-space-3);
+  --us-table-font: var(--us-text-sm);
+}
+.us-table--lg {
+  --us-table-py: var(--us-space-4);
+  --us-table-px: var(--us-space-5);
+  --us-table-font: var(--us-text-base);
+}
+
+/* Header cells */
+.us-table__th {
+  padding: var(--us-table-py) var(--us-table-px);
+  text-align: left;
+  font-size: var(--us-text-xs);
+  font-weight: var(--us-weight-semibold);
+  letter-spacing: var(--us-tracking-wide);
+  text-transform: uppercase;
+  color: var(--us-color-text-muted);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--us-color-border-strong);
+  background-color: var(--us-color-surface);
+}
+
+/* Body cells */
+.us-table__cell {
+  padding: var(--us-table-py) var(--us-table-px);
+  text-align: left;
+  color: var(--us-color-text);
+  border-bottom: 1px solid var(--us-color-divider);
+  vertical-align: middle;
+}
+
+/* Remove the trailing divider on the last body row */
+.us-table__body .us-table__row:last-child .us-table__cell {
+  border-bottom: 0;
+}
+
+/* Footer */
+.us-table__foot .us-table__cell {
+  font-weight: var(--us-weight-semibold);
+  color: var(--us-color-text);
+  border-top: 1px solid var(--us-color-border-strong);
+  border-bottom: 0;
+  background-color: var(--us-color-bg-subtle);
+}
+
+/* Striped */
+.us-table[data-striped] .us-table__body .us-table__row:nth-child(even) {
+  background-color: var(--us-color-bg-subtle);
+}
+
+/* Hoverable */
+.us-table[data-hoverable] .us-table__body .us-table__row {
+  transition: background-color var(--us-duration-fast) var(--us-ease-standard);
+}
+.us-table[data-hoverable] .us-table__body .us-table__row:hover {
+  background-color: var(--us-color-bg-subtle);
+}
+
+/* Sticky header */
+.us-table[data-sticky] .us-table__head .us-table__th {
+  position: sticky;
+  top: 0;
+  z-index: var(--us-z-sticky);
+  background-color: var(--us-color-surface);
+}

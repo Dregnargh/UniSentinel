@@ -1,0 +1,62 @@
+/* Textarea — matches the Input field box, sized like .us-field */
+.us-textarea {
+  --us-textarea-py: var(--us-space-2);
+  --us-textarea-px: var(--us-space-3);
+  --us-textarea-font: var(--us-text-md);
+  --us-textarea-radius: var(--us-radius-md);
+
+  display: block;
+  width: 100%;
+  min-height: calc(var(--us-space-8) + var(--us-space-2));
+  padding: var(--us-textarea-py) var(--us-textarea-px);
+  background-color: var(--us-color-surface);
+  border: 1px solid var(--us-color-border-strong);
+  border-radius: var(--us-textarea-radius);
+  font-family: var(--us-font-sans);
+  font-size: var(--us-textarea-font);
+  line-height: var(--us-leading-normal);
+  color: var(--us-color-text);
+  transition: border-color var(--us-duration-fast) var(--us-ease-standard),
+    box-shadow var(--us-duration-fast) var(--us-ease-standard),
+    background-color var(--us-duration-fast) var(--us-ease-standard);
+}
+
+.us-textarea--sm {
+  --us-textarea-py: var(--us-space-1-5);
+  --us-textarea-px: var(--us-space-2-5);
+  --us-textarea-font: var(--us-text-sm);
+  --us-textarea-radius: var(--us-radius-sm);
+}
+.us-textarea--lg {
+  --us-textarea-py: var(--us-space-3);
+  --us-textarea-px: var(--us-space-4);
+  --us-textarea-font: var(--us-text-base);
+  --us-textarea-radius: var(--us-radius-lg);
+}
+
+.us-textarea::placeholder {
+  color: var(--us-color-text-subtle);
+}
+
+.us-textarea:hover:not(:disabled) {
+  border-color: var(--us-neutral-400);
+}
+.us-textarea:focus {
+  outline: none;
+  border-color: var(--us-color-focus);
+  box-shadow: var(--us-shadow-focus);
+}
+
+.us-textarea[data-invalid] {
+  border-color: var(--us-danger-500);
+}
+.us-textarea[data-invalid]:focus {
+  box-shadow: var(--us-shadow-focus-danger);
+}
+
+.us-textarea:disabled {
+  background-color: var(--us-color-bg-subtle);
+  cursor: not-allowed;
+  opacity: 0.7;
+  resize: none;
+}

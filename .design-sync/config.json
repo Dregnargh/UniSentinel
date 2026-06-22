@@ -1,0 +1,15 @@
+{
+  "pkg": "@unisentinel/ui",
+  "globalName": "UniSentinel",
+  "projectId": "2735cec4-8229-4940-b2e4-cf5848ff49a9",
+  "shape": "package",
+  "buildCmd": "npm run build",
+  "cssEntry": "./dist/styles.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Card": { "cardMode": "column" },
+    "Tooltip": { "cardMode": "column" },
+    "Tabs": { "cardMode": "column" },
+    "Modal": { "cardMode": "single", "primaryStory": "RevokeAccess" }
+  }
+}

@@ -1,0 +1,94 @@
+/* Field wrapper — shared by Input (and matched by Textarea / Select) */
+.us-field {
+  --us-field-h: 38px;
+  --us-field-px: var(--us-space-3);
+  --us-field-font: var(--us-text-md);
+  --us-field-radius: var(--us-radius-md);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--us-space-2);
+  width: 100%;
+  min-height: var(--us-field-h);
+  padding-inline: var(--us-field-px);
+  background-color: var(--us-color-surface);
+  border: 1px solid var(--us-color-border-strong);
+  border-radius: var(--us-field-radius);
+  color: var(--us-color-text);
+  transition: border-color var(--us-duration-fast) var(--us-ease-standard),
+    box-shadow var(--us-duration-fast) var(--us-ease-standard),
+    background-color var(--us-duration-fast) var(--us-ease-standard);
+}
+
+.us-field--sm {
+  --us-field-h: 30px;
+  --us-field-px: var(--us-space-2-5);
+  --us-field-font: var(--us-text-sm);
+  --us-field-radius: var(--us-radius-sm);
+}
+.us-field--lg {
+  --us-field-h: 46px;
+  --us-field-px: var(--us-space-4);
+  --us-field-font: var(--us-text-base);
+  --us-field-radius: var(--us-radius-lg);
+}
+
+.us-field:hover:not([data-disabled]) {
+  border-color: var(--us-neutral-400);
+}
+.us-field:focus-within {
+  border-color: var(--us-color-focus);
+  box-shadow: var(--us-shadow-focus);
+}
+.us-field[data-invalid] {
+  border-color: var(--us-danger-500);
+}
+.us-field[data-invalid]:focus-within {
+  box-shadow: var(--us-shadow-focus-danger);
+}
+.us-field[data-disabled] {
+  background-color: var(--us-color-bg-subtle);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.us-field__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--us-color-text-muted);
+}
+.us-field__icon svg {
+  display: block;
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.us-input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--us-field-h) - 2px);
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  font-family: var(--us-font-sans);
+  font-size: var(--us-field-font);
+  color: inherit;
+  line-height: var(--us-leading-normal);
+}
+.us-input:focus {
+  outline: none;
+}
+.us-input::placeholder {
+  color: var(--us-color-text-subtle);
+}
+.us-input:disabled {
+  cursor: not-allowed;
+}
+.us-input[type='search']::-webkit-search-decoration,
+.us-input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}

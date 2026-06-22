@@ -1,0 +1,91 @@
+/* Switch */
+.us-switch {
+  --us-switch-w: 36px;
+  --us-switch-h: 20px;
+  --us-switch-pad: 2px;
+  --us-switch-font: var(--us-text-md);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--us-space-2);
+  cursor: pointer;
+  color: var(--us-color-text);
+  font-size: var(--us-switch-font);
+  line-height: var(--us-leading-snug);
+}
+.us-switch--sm {
+  --us-switch-w: 30px;
+  --us-switch-h: 16px;
+  --us-switch-font: var(--us-text-sm);
+}
+.us-switch--lg {
+  --us-switch-w: 44px;
+  --us-switch-h: 24px;
+  --us-switch-font: var(--us-text-base);
+}
+
+/* Put the label before the track when requested */
+.us-switch[data-label-pos='left'] {
+  flex-direction: row-reverse;
+}
+
+.us-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Track */
+.us-switch__track {
+  position: relative;
+  flex: none;
+  display: inline-block;
+  width: var(--us-switch-w);
+  height: var(--us-switch-h);
+  border-radius: var(--us-radius-pill);
+  background-color: var(--us-neutral-300);
+  transition: background-color var(--us-duration-base) var(--us-ease-standard),
+    box-shadow var(--us-duration-fast) var(--us-ease-standard);
+}
+
+/* Thumb */
+.us-switch__thumb {
+  position: absolute;
+  top: var(--us-switch-pad);
+  left: var(--us-switch-pad);
+  width: calc(var(--us-switch-h) - var(--us-switch-pad) * 2);
+  height: calc(var(--us-switch-h) - var(--us-switch-pad) * 2);
+  border-radius: var(--us-radius-full);
+  background-color: var(--us-neutral-0);
+  box-shadow: var(--us-shadow-xs);
+  transition: transform var(--us-duration-base) var(--us-ease-standard);
+}
+
+.us-switch:hover:not([data-disabled]) .us-switch__track {
+  background-color: var(--us-neutral-400);
+}
+
+.us-switch__control:checked ~ .us-switch__track {
+  background-color: var(--us-color-accent);
+}
+.us-switch:hover:not([data-disabled]) .us-switch__control:checked ~ .us-switch__track {
+  background-color: var(--us-color-accent-hover);
+}
+.us-switch__control:checked ~ .us-switch__track .us-switch__thumb {
+  transform: translateX(calc(var(--us-switch-w) - var(--us-switch-h)));
+}
+
+.us-switch__control:focus-visible ~ .us-switch__track {
+  outline: none;
+  box-shadow: var(--us-shadow-focus);
+}
+
+.us-switch__label {
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .us-switch__track,
+  .us-switch__thumb {
+    transition: none;
+  }
+}

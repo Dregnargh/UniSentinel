@@ -1,0 +1,111 @@
+/* Modal — dialog rendered in a portal on document.body */
+.us-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--us-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--us-space-5);
+  background-color: var(--us-color-overlay);
+}
+
+.us-modal {
+  display: flex;
+  flex-direction: column;
+  width: 480px;
+  max-width: 92vw;
+  max-height: 88vh;
+  background-color: var(--us-color-surface);
+  border-radius: var(--us-radius-lg);
+  box-shadow: var(--us-shadow-xl);
+  color: var(--us-color-text);
+  overflow: clip;
+}
+
+.us-modal:focus-visible {
+  outline: none;
+  box-shadow: var(--us-shadow-focus), var(--us-shadow-xl);
+}
+
+/* Sizes */
+.us-modal--sm {
+  width: 360px;
+}
+.us-modal--md {
+  width: 480px;
+}
+.us-modal--lg {
+  width: 640px;
+}
+.us-modal--xl {
+  width: 800px;
+}
+
+/* Sections */
+.us-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--us-space-3);
+  padding: var(--us-space-5) var(--us-space-5) var(--us-space-4);
+  border-bottom: 1px solid var(--us-color-divider);
+}
+
+.us-modal__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--us-text-xl);
+  font-weight: var(--us-weight-semibold);
+  line-height: var(--us-leading-snug);
+  letter-spacing: var(--us-tracking-tight);
+  color: var(--us-color-heading);
+}
+
+.us-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: -2px -4px -2px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--us-radius-sm);
+  background: transparent;
+  color: var(--us-color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--us-duration-fast) var(--us-ease-standard),
+    color var(--us-duration-fast) var(--us-ease-standard);
+}
+.us-modal__close:hover {
+  background-color: var(--us-color-bg-muted);
+  color: var(--us-color-text);
+}
+.us-modal__close:focus-visible {
+  outline: none;
+  box-shadow: var(--us-shadow-focus);
+}
+.us-modal__close svg {
+  display: block;
+}
+
+.us-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  padding: var(--us-space-5);
+  overflow-y: auto;
+  line-height: var(--us-leading-normal);
+}
+
+.us-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--us-space-3);
+  padding: var(--us-space-4) var(--us-space-5);
+  border-top: 1px solid var(--us-color-divider);
+  background-color: var(--us-color-bg-subtle);
+}

@@ -1,0 +1,54 @@
+/* Skeleton — loading placeholder with a shimmer sweep */
+.us-skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--us-neutral-200);
+  border-radius: var(--us-radius-sm);
+}
+
+.us-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--us-neutral-100) 50%,
+    transparent 100%
+  );
+  animation: us-skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+.us-skeleton--text {
+  height: 0.8em;
+  border-radius: var(--us-radius-sm);
+}
+
+.us-skeleton--rect {
+  border-radius: var(--us-radius-md);
+}
+
+.us-skeleton--circle {
+  border-radius: var(--us-radius-full);
+}
+
+.us-skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--us-space-2);
+}
+
+@keyframes us-skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .us-skeleton::after {
+    animation: none;
+    display: none;
+  }
+}

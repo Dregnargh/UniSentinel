@@ -1,0 +1,39 @@
+/* Spinner — uses the shared tone system via [data-us-tone] */
+.us-spinner {
+  --us-spinner-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--us-tone-accent);
+}
+
+.us-spinner--sm {
+  --us-spinner-size: 16px;
+}
+.us-spinner--md {
+  --us-spinner-size: 24px;
+}
+.us-spinner--lg {
+  --us-spinner-size: 36px;
+}
+
+.us-spinner__ring {
+  width: var(--us-spinner-size);
+  height: var(--us-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--us-radius-full);
+  animation: us-spin 0.6s linear infinite;
+}
+
+@keyframes us-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .us-spinner__ring {
+    animation-duration: 1.2s;
+  }
+}

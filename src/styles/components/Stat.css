@@ -1,0 +1,68 @@
+/* Stat — delta pill uses the shared tone system via [data-us-tone] */
+.us-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--us-space-2);
+  min-width: 0;
+}
+
+.us-stat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--us-space-2);
+}
+
+.us-stat__label {
+  font-size: var(--us-text-xs);
+  font-weight: var(--us-weight-semibold);
+  letter-spacing: var(--us-tracking-wide);
+  text-transform: uppercase;
+  color: var(--us-color-text-muted);
+}
+
+.us-stat__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--us-color-text-subtle);
+}
+.us-stat__icon svg {
+  display: block;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.us-stat__value {
+  font-size: var(--us-text-3xl);
+  font-weight: var(--us-weight-bold);
+  line-height: var(--us-leading-tight);
+  letter-spacing: var(--us-tracking-tight);
+  color: var(--us-color-heading);
+}
+
+.us-stat__delta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--us-space-1);
+  padding: var(--us-space-0-5) var(--us-space-2);
+  border-radius: var(--us-radius-sm);
+  background-color: var(--us-tone-subtle-bg);
+  color: var(--us-tone-subtle-fg);
+  font-size: var(--us-text-xs);
+  font-weight: var(--us-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.us-stat__delta-arrow {
+  display: block;
+  flex: none;
+  color: var(--us-tone-accent);
+}
+
+.us-stat__hint {
+  font-size: var(--us-text-sm);
+  color: var(--us-color-text-muted);
+}

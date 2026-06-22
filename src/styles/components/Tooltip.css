@@ -1,0 +1,99 @@
+/* Tooltip — hover / focus popup anchored to a wrapped trigger */
+.us-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.us-tooltip {
+  position: absolute;
+  z-index: var(--us-z-tooltip);
+  max-width: 240px;
+  width: max-content;
+  padding: 6px 10px;
+  background-color: var(--us-navy-900);
+  color: var(--us-neutral-0);
+  border-radius: var(--us-radius-sm);
+  font-size: var(--us-text-xs);
+  line-height: var(--us-leading-snug);
+  text-align: left;
+  box-shadow: var(--us-shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--us-duration-fast) var(--us-ease-out),
+    visibility var(--us-duration-fast) var(--us-ease-out);
+}
+
+.us-tooltip[data-show] {
+  opacity: 1;
+  visibility: visible;
+}
+
+.us-tooltip__content {
+  position: relative;
+  display: block;
+}
+
+.us-tooltip__arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: var(--us-navy-900);
+  transform: rotate(45deg);
+}
+
+/* Placement: top */
+.us-tooltip--top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+}
+.us-tooltip--top .us-tooltip__arrow {
+  top: 100%;
+  left: 50%;
+  margin-top: -4px;
+  margin-left: -4px;
+}
+
+/* Placement: bottom */
+.us-tooltip--bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+}
+.us-tooltip--bottom .us-tooltip__arrow {
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: -4px;
+  margin-left: -4px;
+}
+
+/* Placement: left */
+.us-tooltip--left {
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 8px;
+}
+.us-tooltip--left .us-tooltip__arrow {
+  left: 100%;
+  top: 50%;
+  margin-left: -4px;
+  margin-top: -4px;
+}
+
+/* Placement: right */
+.us-tooltip--right {
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+}
+.us-tooltip--right .us-tooltip__arrow {
+  right: 100%;
+  top: 50%;
+  margin-right: -4px;
+  margin-top: -4px;
+}

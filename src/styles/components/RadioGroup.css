@@ -1,0 +1,105 @@
+/* RadioGroup + RadioGroup.Option */
+.us-radio-group {
+  display: flex;
+  gap: var(--us-space-3);
+}
+.us-radio-group--vertical {
+  flex-direction: column;
+}
+.us-radio-group--horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--us-space-4);
+}
+
+.us-radio {
+  --us-radio-dot: 16px;
+  --us-radio-font: var(--us-text-md);
+
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--us-space-2);
+  cursor: pointer;
+  color: var(--us-color-text);
+  font-size: var(--us-radio-font);
+  line-height: var(--us-leading-snug);
+}
+.us-radio--sm {
+  --us-radio-dot: 14px;
+  --us-radio-font: var(--us-text-sm);
+}
+.us-radio--lg {
+  --us-radio-dot: 18px;
+  --us-radio-font: var(--us-text-base);
+}
+
+.us-radio[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Custom dot */
+.us-radio__dot {
+  position: relative;
+  flex: none;
+  width: var(--us-radio-dot);
+  height: var(--us-radio-dot);
+  /* Nudge to align with the first line of label text */
+  margin-top: calc((1em * var(--us-leading-snug) - var(--us-radio-dot)) / 2);
+  border: 1px solid var(--us-color-border-strong);
+  border-radius: var(--us-radius-full);
+  background-color: var(--us-color-surface);
+  transition: border-color var(--us-duration-fast) var(--us-ease-standard),
+    box-shadow var(--us-duration-fast) var(--us-ease-standard);
+}
+.us-radio__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 50%;
+  height: 50%;
+  border-radius: var(--us-radius-full);
+  background-color: var(--us-color-on-accent);
+  transform: scale(0);
+  transition: transform var(--us-duration-fast) var(--us-ease-standard);
+}
+
+.us-radio:hover:not([data-disabled]) .us-radio__dot {
+  border-color: var(--us-neutral-400);
+}
+
+.us-radio__control:checked ~ .us-radio__dot {
+  border-color: var(--us-color-accent);
+  background-color: var(--us-color-accent);
+}
+.us-radio__control:checked ~ .us-radio__dot::after {
+  transform: scale(1);
+}
+
+.us-radio__control:focus-visible ~ .us-radio__dot {
+  outline: none;
+  box-shadow: var(--us-shadow-focus);
+}
+
+/* Text block */
+.us-radio__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--us-space-0-5);
+  min-width: 0;
+}
+.us-radio__label {
+  font-weight: var(--us-weight-medium);
+}
+.us-radio__description {
+  font-size: var(--us-text-sm);
+  color: var(--us-color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .us-radio__dot,
+  .us-radio__dot::after {
+    transition: none;
+  }
+}

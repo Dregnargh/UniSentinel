@@ -1,0 +1,70 @@
+/* Progress — uses the shared tone system via [data-us-tone] */
+.us-progress {
+  --us-progress-h: 8px;
+
+  display: flex;
+  align-items: center;
+  gap: var(--us-space-3);
+  width: 100%;
+}
+
+.us-progress--sm {
+  --us-progress-h: 4px;
+}
+.us-progress--lg {
+  --us-progress-h: 12px;
+}
+
+.us-progress__track {
+  position: relative;
+  flex: 1 1 auto;
+  height: var(--us-progress-h);
+  background-color: var(--us-color-bg-muted);
+  border-radius: var(--us-radius-pill);
+  overflow: hidden;
+}
+
+.us-progress__fill {
+  height: 100%;
+  background-color: var(--us-tone-accent);
+  border-radius: var(--us-radius-pill);
+  transition: width var(--us-duration-base) var(--us-ease-standard);
+}
+
+.us-progress__fill[data-indeterminate] {
+  position: absolute;
+  inset-block: 0;
+  width: 35%;
+  transition: none;
+  animation: us-progress-indeterminate 1.2s var(--us-ease-standard) infinite;
+}
+
+@keyframes us-progress-indeterminate {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.us-progress__label {
+  flex: none;
+  min-width: 3.25em;
+  text-align: right;
+  font-size: var(--us-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--us-color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .us-progress__fill {
+    transition: none;
+  }
+  .us-progress__fill[data-indeterminate] {
+    left: 0;
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
+}

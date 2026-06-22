@@ -1,0 +1,168 @@
+/* Button */
+.us-btn {
+  --us-btn-h: 38px;
+  --us-btn-px: var(--us-space-4);
+  --us-btn-font: var(--us-text-md);
+  --us-btn-gap: var(--us-space-2);
+  --us-btn-radius: var(--us-radius-md);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--us-btn-gap);
+  height: var(--us-btn-h);
+  padding-inline: var(--us-btn-px);
+  border: 1px solid transparent;
+  border-radius: var(--us-btn-radius);
+  font-family: var(--us-font-sans);
+  font-size: var(--us-btn-font);
+  font-weight: var(--us-weight-semibold);
+  line-height: 1;
+  letter-spacing: var(--us-tracking-normal);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--us-duration-fast) var(--us-ease-standard),
+    border-color var(--us-duration-fast) var(--us-ease-standard),
+    color var(--us-duration-fast) var(--us-ease-standard),
+    box-shadow var(--us-duration-fast) var(--us-ease-standard);
+}
+
+.us-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--us-shadow-focus);
+}
+
+.us-btn:disabled,
+.us-btn[data-loading] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Sizes */
+.us-btn--sm {
+  --us-btn-h: 30px;
+  --us-btn-px: var(--us-space-3);
+  --us-btn-font: var(--us-text-sm);
+  --us-btn-gap: var(--us-space-1-5);
+  --us-btn-radius: var(--us-radius-sm);
+}
+.us-btn--lg {
+  --us-btn-h: 46px;
+  --us-btn-px: var(--us-space-5);
+  --us-btn-font: var(--us-text-base);
+  --us-btn-gap: var(--us-space-2-5);
+  --us-btn-radius: var(--us-radius-lg);
+}
+
+.us-btn--full {
+  width: 100%;
+}
+.us-btn--icon-only {
+  padding-inline: 0;
+  width: var(--us-btn-h);
+}
+
+/* Variants */
+.us-btn--primary {
+  background-color: var(--us-color-primary);
+  color: var(--us-color-on-primary);
+}
+.us-btn--primary:hover:not(:disabled):not([data-loading]) {
+  background-color: var(--us-color-primary-hover);
+}
+.us-btn--primary:active:not(:disabled) {
+  background-color: var(--us-color-primary-active);
+}
+
+.us-btn--accent {
+  background-color: var(--us-color-accent);
+  color: var(--us-color-on-accent);
+}
+.us-btn--accent:hover:not(:disabled):not([data-loading]) {
+  background-color: var(--us-color-accent-hover);
+}
+.us-btn--accent:active:not(:disabled) {
+  background-color: var(--us-color-accent-active);
+}
+
+.us-btn--secondary {
+  background-color: var(--us-neutral-100);
+  color: var(--us-navy-800);
+}
+.us-btn--secondary:hover:not(:disabled):not([data-loading]) {
+  background-color: var(--us-neutral-200);
+}
+.us-btn--secondary:active:not(:disabled) {
+  background-color: var(--us-neutral-300);
+}
+
+.us-btn--outline {
+  background-color: transparent;
+  color: var(--us-color-text);
+  border-color: var(--us-color-border-strong);
+}
+.us-btn--outline:hover:not(:disabled):not([data-loading]) {
+  background-color: var(--us-color-bg-subtle);
+  border-color: var(--us-neutral-400);
+}
+.us-btn--outline:active:not(:disabled) {
+  background-color: var(--us-color-bg-muted);
+}
+
+.us-btn--ghost {
+  background-color: transparent;
+  color: var(--us-color-text);
+}
+.us-btn--ghost:hover:not(:disabled):not([data-loading]) {
+  background-color: var(--us-color-bg-muted);
+}
+.us-btn--ghost:active:not(:disabled) {
+  background-color: var(--us-neutral-200);
+}
+
+.us-btn--danger {
+  background-color: var(--us-color-danger);
+  color: var(--us-color-on-danger);
+}
+.us-btn--danger:hover:not(:disabled):not([data-loading]) {
+  background-color: var(--us-danger-600);
+}
+.us-btn--danger:active:not(:disabled) {
+  background-color: var(--us-danger-700);
+}
+
+/* Slots */
+.us-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.us-btn__icon svg {
+  display: block;
+  width: 1.1em;
+  height: 1.1em;
+}
+.us-btn__label {
+  display: inline-block;
+}
+
+.us-btn__spinner {
+  width: 1em;
+  height: 1em;
+  border-radius: var(--us-radius-full);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: us-btn-spin 0.6s linear infinite;
+}
+@keyframes us-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .us-btn__spinner {
+    animation-duration: 1.2s;
+  }
+}

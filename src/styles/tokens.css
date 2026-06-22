@@ -1,0 +1,200 @@
+/* ==========================================================================
+   UniSentinel design tokens
+   Anchored to the brand mark: navy #082850 (Uni / left shield) and
+   teal #086888 (Sentinel / right shield). All tokens are global custom
+   properties on :root — components are styled without any provider wrapper.
+   ========================================================================== */
+
+:root {
+  /* --- Palette: Navy (primary) --------------------------------------- */
+  --us-navy-50: #f0f4f9;
+  --us-navy-100: #dbe4f0;
+  --us-navy-200: #b9cade;
+  --us-navy-300: #8ea7c6;
+  --us-navy-400: #5c7ba3;
+  --us-navy-500: #355981;
+  --us-navy-600: #1d4068;
+  --us-navy-700: #123254;
+  --us-navy-800: #082850; /* brand navy */
+  --us-navy-900: #051a36;
+
+  /* --- Palette: Teal (accent) ---------------------------------------- */
+  --us-teal-50: #ecf6fa;
+  --us-teal-100: #cfe9f1;
+  --us-teal-200: #9fd3e4;
+  --us-teal-300: #63b6d2;
+  --us-teal-400: #2f95b8;
+  --us-teal-500: #127a9c;
+  --us-teal-600: #086888; /* brand teal */
+  --us-teal-700: #0a5570;
+  --us-teal-800: #0d4459;
+  --us-teal-900: #0c3344;
+
+  /* --- Palette: Neutral (cool slate) --------------------------------- */
+  --us-neutral-0: #ffffff;
+  --us-neutral-50: #f6f8fa;
+  --us-neutral-100: #eef1f5;
+  --us-neutral-200: #e2e7ee;
+  --us-neutral-300: #cbd3de;
+  --us-neutral-400: #9aa6b6;
+  --us-neutral-500: #6b7888;
+  --us-neutral-600: #4d5867;
+  --us-neutral-700: #38414e;
+  --us-neutral-800: #232a34;
+  --us-neutral-900: #141921;
+  --us-neutral-950: #0b0e13;
+
+  /* --- Palette: Semantic ramps --------------------------------------- */
+  --us-success-50: #e9f7f0;
+  --us-success-100: #c9ecdd;
+  --us-success-200: #97dcbe;
+  --us-success-500: #0f9d6b;
+  --us-success-600: #0c8159;
+  --us-success-700: #0a6647;
+
+  --us-warning-50: #fdf4e3;
+  --us-warning-100: #fae4bd;
+  --us-warning-200: #f4cd85;
+  --us-warning-500: #d18a0a;
+  --us-warning-600: #a96f08;
+  --us-warning-700: #855607;
+
+  --us-danger-50: #fcecec;
+  --us-danger-100: #f8cfcf;
+  --us-danger-200: #f0a5a5;
+  --us-danger-500: #d64545;
+  --us-danger-600: #b83333;
+  --us-danger-700: #962727;
+
+  --us-info-50: #eaf2fb;
+  --us-info-100: #cfe0f6;
+  --us-info-200: #a6c6ee;
+  --us-info-500: #2f6fb5;
+  --us-info-600: #245a96;
+  --us-info-700: #1d4878;
+
+  /* --- Semantic roles ------------------------------------------------ */
+  --us-color-bg: var(--us-neutral-0);
+  --us-color-bg-subtle: var(--us-neutral-50);
+  --us-color-bg-muted: var(--us-neutral-100);
+  --us-color-surface: var(--us-neutral-0);
+  --us-color-overlay: rgba(5, 26, 54, 0.55);
+
+  --us-color-border: var(--us-neutral-200);
+  --us-color-border-strong: var(--us-neutral-300);
+  --us-color-divider: var(--us-neutral-200);
+
+  --us-color-text: var(--us-neutral-900);
+  --us-color-heading: var(--us-navy-900);
+  --us-color-text-muted: var(--us-neutral-500);
+  --us-color-text-subtle: var(--us-neutral-400);
+  --us-color-text-inverse: var(--us-neutral-0);
+  --us-color-link: var(--us-teal-600);
+  --us-color-link-hover: var(--us-teal-700);
+
+  /* Brand: primary (navy) */
+  --us-color-primary: var(--us-navy-800);
+  --us-color-primary-hover: #0c3358;
+  --us-color-primary-active: var(--us-navy-900);
+  --us-color-primary-subtle: var(--us-navy-50);
+  --us-color-primary-subtle-hover: var(--us-navy-100);
+  --us-color-on-primary: var(--us-neutral-0);
+
+  /* Brand: accent (teal) */
+  --us-color-accent: var(--us-teal-600);
+  --us-color-accent-hover: var(--us-teal-700);
+  --us-color-accent-active: var(--us-teal-800);
+  --us-color-accent-subtle: var(--us-teal-50);
+  --us-color-accent-subtle-hover: var(--us-teal-100);
+  --us-color-on-accent: var(--us-neutral-0);
+
+  --us-color-focus: var(--us-teal-400);
+  --us-color-danger: var(--us-danger-500);
+  --us-color-on-danger: var(--us-neutral-0);
+
+  /* --- Spacing (4px base) -------------------------------------------- */
+  --us-space-0: 0;
+  --us-space-px: 1px;
+  --us-space-0-5: 2px;
+  --us-space-1: 4px;
+  --us-space-1-5: 6px;
+  --us-space-2: 8px;
+  --us-space-2-5: 10px;
+  --us-space-3: 12px;
+  --us-space-4: 16px;
+  --us-space-5: 20px;
+  --us-space-6: 24px;
+  --us-space-7: 28px;
+  --us-space-8: 32px;
+  --us-space-10: 40px;
+  --us-space-12: 48px;
+  --us-space-16: 64px;
+
+  /* --- Radii --------------------------------------------------------- */
+  --us-radius-xs: 3px;
+  --us-radius-sm: 5px;
+  --us-radius-md: 8px;
+  --us-radius-lg: 12px;
+  --us-radius-xl: 16px;
+  --us-radius-2xl: 22px;
+  --us-radius-pill: 999px;
+  --us-radius-full: 9999px;
+
+  /* --- Shadows (navy-tinted) ----------------------------------------- */
+  --us-shadow-xs: 0 1px 2px rgba(8, 40, 80, 0.06);
+  --us-shadow-sm: 0 1px 3px rgba(8, 40, 80, 0.09), 0 1px 2px rgba(8, 40, 80, 0.06);
+  --us-shadow-md: 0 4px 12px rgba(8, 40, 80, 0.1), 0 2px 4px rgba(8, 40, 80, 0.06);
+  --us-shadow-lg: 0 12px 28px rgba(8, 40, 80, 0.14), 0 4px 10px rgba(8, 40, 80, 0.08);
+  --us-shadow-xl: 0 24px 48px rgba(8, 40, 80, 0.18);
+  --us-shadow-focus: 0 0 0 3px rgba(47, 149, 184, 0.35);
+  --us-shadow-focus-danger: 0 0 0 3px rgba(214, 69, 69, 0.3);
+
+  /* --- Typography ---------------------------------------------------- */
+  --us-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  --us-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --us-text-2xs: 11px;
+  --us-text-xs: 12px;
+  --us-text-sm: 13px;
+  --us-text-md: 14px;
+  --us-text-base: 15px;
+  --us-text-lg: 16px;
+  --us-text-xl: 18px;
+  --us-text-2xl: 22px;
+  --us-text-3xl: 28px;
+  --us-text-4xl: 34px;
+  --us-text-5xl: 44px;
+
+  --us-leading-tight: 1.2;
+  --us-leading-snug: 1.35;
+  --us-leading-normal: 1.5;
+  --us-leading-relaxed: 1.7;
+
+  --us-weight-regular: 400;
+  --us-weight-medium: 500;
+  --us-weight-semibold: 600;
+  --us-weight-bold: 700;
+
+  --us-tracking-tight: -0.01em;
+  --us-tracking-normal: 0;
+  --us-tracking-wide: 0.04em;
+
+  /* --- Z-index ------------------------------------------------------- */
+  --us-z-base: 1;
+  --us-z-dropdown: 1000;
+  --us-z-sticky: 1100;
+  --us-z-overlay: 1200;
+  --us-z-modal: 1300;
+  --us-z-popover: 1400;
+  --us-z-tooltip: 1500;
+  --us-z-toast: 1600;
+
+  /* --- Motion -------------------------------------------------------- */
+  --us-duration-fast: 120ms;
+  --us-duration-base: 180ms;
+  --us-duration-slow: 280ms;
+  --us-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --us-ease-out: cubic-bezier(0, 0, 0.2, 1);
+}

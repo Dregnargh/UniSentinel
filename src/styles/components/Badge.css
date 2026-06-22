@@ -1,0 +1,50 @@
+/* Badge — uses the shared tone system via [data-us-tone] */
+.us-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--us-space-1);
+  padding: 2px var(--us-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--us-radius-pill);
+  font-family: var(--us-font-sans);
+  font-size: var(--us-text-xs);
+  font-weight: var(--us-weight-semibold);
+  line-height: var(--us-leading-tight);
+  letter-spacing: var(--us-tracking-normal);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.us-badge--sm {
+  padding: 1px var(--us-space-1-5);
+  font-size: var(--us-text-2xs);
+}
+
+/* Variants */
+.us-badge--subtle {
+  background-color: var(--us-tone-subtle-bg);
+  color: var(--us-tone-subtle-fg);
+  border-color: var(--us-tone-subtle-border);
+}
+.us-badge--solid {
+  background-color: var(--us-tone-solid-bg);
+  color: var(--us-tone-solid-fg);
+  border-color: transparent;
+}
+.us-badge--outline {
+  background-color: transparent;
+  color: var(--us-tone-subtle-fg);
+  border-color: var(--us-tone-subtle-border);
+}
+
+/* Leading status dot */
+.us-badge__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--us-radius-full);
+  background-color: var(--us-tone-accent);
+}
+.us-badge--solid .us-badge__dot {
+  background-color: currentColor;
+}

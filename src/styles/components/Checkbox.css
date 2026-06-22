@@ -1,0 +1,98 @@
+/* Checkbox — real input is visually hidden; .us-checkbox__box is the visual */
+.us-checkbox {
+  --us-checkbox-size: 16px;
+  --us-checkbox-font: var(--us-text-md);
+
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--us-space-2);
+  cursor: pointer;
+  font-size: var(--us-checkbox-font);
+  line-height: var(--us-leading-snug);
+  color: var(--us-color-text);
+}
+
+.us-checkbox--sm {
+  --us-checkbox-size: 14px;
+  --us-checkbox-font: var(--us-text-sm);
+}
+.us-checkbox--lg {
+  --us-checkbox-size: 18px;
+  --us-checkbox-font: var(--us-text-base);
+}
+
+.us-checkbox[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.us-checkbox__box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--us-checkbox-size);
+  height: var(--us-checkbox-size);
+  /* nudge to optically align the box with the first line of text */
+  margin-top: 1px;
+  background-color: var(--us-color-surface);
+  border: 1px solid var(--us-color-border-strong);
+  border-radius: var(--us-radius-sm);
+  color: var(--us-color-on-accent);
+  transition: background-color var(--us-duration-fast) var(--us-ease-standard),
+    border-color var(--us-duration-fast) var(--us-ease-standard),
+    box-shadow var(--us-duration-fast) var(--us-ease-standard);
+}
+
+.us-checkbox:hover:not([data-disabled]) .us-checkbox__control:not(:checked):not(:indeterminate) ~ .us-checkbox__box {
+  border-color: var(--us-neutral-400);
+}
+
+.us-checkbox__icon {
+  display: none;
+  width: calc(var(--us-checkbox-size) - 4px);
+  height: calc(var(--us-checkbox-size) - 4px);
+}
+
+/* checked -> fill + check; indeterminate -> fill + minus */
+.us-checkbox__control:checked ~ .us-checkbox__box,
+.us-checkbox__control:indeterminate ~ .us-checkbox__box {
+  background-color: var(--us-color-accent);
+  border-color: var(--us-color-accent);
+}
+.us-checkbox__control:checked:not(:indeterminate) ~ .us-checkbox__box .us-checkbox__icon--check {
+  display: block;
+}
+.us-checkbox__control:indeterminate ~ .us-checkbox__box .us-checkbox__icon--minus {
+  display: block;
+}
+
+/* focus ring on the box, driven by the real input */
+.us-checkbox__control:focus-visible ~ .us-checkbox__box {
+  outline: none;
+  box-shadow: var(--us-shadow-focus);
+}
+
+/* invalid state */
+.us-checkbox[data-invalid] .us-checkbox__box {
+  border-color: var(--us-danger-500);
+}
+.us-checkbox[data-invalid] .us-checkbox__control:focus-visible ~ .us-checkbox__box {
+  box-shadow: var(--us-shadow-focus-danger);
+}
+
+.us-checkbox__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--us-space-0-5);
+  min-width: 0;
+}
+.us-checkbox__label {
+  font-weight: var(--us-weight-medium);
+}
+.us-checkbox__desc {
+  font-size: var(--us-text-sm);
+  color: var(--us-color-text-muted);
+  font-weight: var(--us-weight-regular);
+}

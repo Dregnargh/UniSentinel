@@ -1,0 +1,91 @@
+/* Tag — uses the shared tone system via [data-us-tone] */
+.us-tag {
+  --us-tag-px: var(--us-space-2);
+  --us-tag-py: var(--us-space-0-5);
+  --us-tag-font: var(--us-text-sm);
+  --us-tag-gap: var(--us-space-1-5);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--us-tag-gap);
+  max-width: 100%;
+  padding: var(--us-tag-py) var(--us-tag-px);
+  border: 1px solid transparent;
+  border-radius: var(--us-radius-sm);
+  font-family: var(--us-font-sans);
+  font-size: var(--us-tag-font);
+  font-weight: var(--us-weight-medium);
+  line-height: var(--us-leading-tight);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Sizes */
+.us-tag--sm {
+  --us-tag-px: var(--us-space-1-5);
+  --us-tag-font: var(--us-text-xs);
+  --us-tag-gap: var(--us-space-1);
+}
+
+/* Variants */
+.us-tag--subtle {
+  background-color: var(--us-tone-subtle-bg);
+  border-color: var(--us-tone-subtle-border);
+  color: var(--us-tone-subtle-fg);
+}
+.us-tag--outline {
+  background-color: transparent;
+  border-color: var(--us-tone-subtle-border);
+  color: var(--us-tone-subtle-fg);
+}
+
+/* Slots */
+.us-tag__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--us-tone-accent);
+}
+.us-tag__icon svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
+.us-tag__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.us-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-right: -2px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--us-radius-pill);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity var(--us-duration-fast) var(--us-ease-standard),
+    background-color var(--us-duration-fast) var(--us-ease-standard);
+}
+.us-tag__remove:hover {
+  opacity: 1;
+  background-color: rgba(8, 40, 80, 0.1);
+}
+.us-tag__remove:focus-visible {
+  outline: none;
+  opacity: 1;
+  box-shadow: var(--us-shadow-focus);
+}
+.us-tag__remove svg {
+  display: block;
+}
