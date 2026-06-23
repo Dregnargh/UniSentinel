@@ -13,3 +13,6 @@ ds-bundle/
 .DS_Store
 .brandtmp/
 .wf/
+
+# keep the website build from inferring the repo root as its workspace
+/package-lock.json
