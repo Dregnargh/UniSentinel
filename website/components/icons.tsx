@@ -134,3 +134,61 @@ export const Plug = svg(
     <path d="M7 8h10v3a5 5 0 0 1-10 0V8Z" />
   </>,
 );
+
+// --- app/CRM icons ---
+export const Grid = svg(
+  <>
+    <rect x="4" y="4" width="7" height="7" rx="1.5" />
+    <rect x="13" y="4" width="7" height="7" rx="1.5" />
+    <rect x="4" y="13" width="7" height="7" rx="1.5" />
+    <rect x="13" y="13" width="7" height="7" rx="1.5" />
+  </>,
+);
+export const Search = svg(
+  <>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.2-3.2" />
+  </>,
+);
+export const Bell = svg(
+  <>
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+  </>,
+);
+export const Settings = svg(
+  <>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1" />
+  </>,
+);
+export const Plus = svg(<path d="M12 5v14M5 12h14" />);
+export const Mail = svg(
+  <>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </>,
+);
+export const Phone = svg(
+  <path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />,
+);
+export const Filter = svg(<path d="M3 5h18l-7 8v6l-4-2v-4L3 5Z" />);
+export const Calendar = svg(
+  <>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 9h18M8 3v4M16 3v4" />
+  </>,
+);
+export const Pipeline = svg(
+  <>
+    <rect x="3" y="4" width="5" height="16" rx="1" />
+    <rect x="10" y="4" width="5" height="11" rx="1" />
+    <rect x="17" y="4" width="4" height="7" rx="1" />
+  </>,
+);
+export const Dollar = svg(
+  <>
+    <path d="M12 2v20" />
+    <path d="M17 6.5A4 4 0 0 0 13 4h-1.5a3.5 3.5 0 0 0 0 7h3a3.5 3.5 0 0 1 0 7H10a4 4 0 0 1-4-2.5" />
+  </>,
+);

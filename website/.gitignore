@@ -43,3 +43,12 @@ next-env.d.ts
 # local dev tooling
 .shots/
 shot.mjs
+
+.vercel
+
+# local sqlite db
+dev.db
+*.db
+*.db-journal
+!.env.example
+shot-app.mjs
