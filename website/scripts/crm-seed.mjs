@@ -1,37 +1,48 @@
 // Seeds the CRM demo dataset (companies, contacts, deals, activities) attributed
 // to the demo admin's workspace. Run after db:push and db:seed. Idempotent —
 // skips if the admin already has companies. Mirrors lib/crm/data.ts.
-import { createClient } from "@libsql/client";
+import pg from "pg";
 import { randomUUID } from "node:crypto";
 
-const url = process.env.DATABASE_URL ?? "file:./dev.db";
-const authToken = process.env.DATABASE_AUTH_TOKEN;
-const client = createClient(authToken ? { url, authToken } : { url });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error("✗ DATABASE_URL is not set");
+  process.exit(1);
+}
+
+function sslConfig() {
+  if (process.env.DATABASE_SSL === "false") return false;
+  const ca = process.env.DATABASE_CA_CERT;
+  if (ca) return { ca, rejectUnauthorized: true };
+  return { rejectUnauthorized: false };
+}
+
+const client = new pg.Client({ connectionString, ssl: sslConfig() });
+await client.connect();
 
 const adminEmail = "admin@unisentinel.com";
 
 // Resolve the owning user. The CRM is workspace-scoped, so it needs an owner.
-const owner = await client.execute({
-  sql: "SELECT id FROM users WHERE email = ?",
-  args: [adminEmail],
-});
+const owner = await client.query("SELECT id FROM users WHERE email = $1", [adminEmail]);
 if (!owner.rows.length) {
   console.error(`✗ no user ${adminEmail}. Run \`npm run db:seed\` first, then retry.`);
+  await client.end();
   process.exit(1);
 }
 const ownerId = owner.rows[0].id;
 
 // Skip if this workspace already has CRM data.
-const existing = await client.execute({
-  sql: "SELECT id FROM companies WHERE owner_id = ? LIMIT 1",
-  args: [ownerId],
-});
+const existing = await client.query(
+  "SELECT id FROM companies WHERE owner_id = $1 LIMIT 1",
+  [ownerId],
+);
 if (existing.rows.length) {
   console.log(`✓ CRM data already seeded for ${adminEmail}`);
+  await client.end();
   process.exit(0);
 }
 
-const now = Math.floor(Date.now() / 1000);
+const now = new Date();
 
 const companies = [
   { id: "c1", name: "Northwind Bank", industry: "Financial Services", size: "5,000+", location: "New York, US", riskTier: "High", status: "Active", owner: "Maya Chen", frameworks: ["SOC 2", "ISO 27001", "PCI DSS"], arr: 148000 },
@@ -101,43 +112,49 @@ const activities = [
 // across workspaces, while preserving the company relationships.
 const companyUuid = new Map(companies.map((c) => [c.id, randomUUID()]));
 
-const stmts = [];
+try {
+  await client.query("BEGIN");
 
-for (const c of companies) {
-  stmts.push({
-    sql: `INSERT INTO companies (id, owner_id, name, industry, size, location, risk_tier, status, owner, frameworks, arr, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [companyUuid.get(c.id), ownerId, c.name, c.industry, c.size, c.location, c.riskTier, c.status, c.owner, JSON.stringify(c.frameworks), c.arr, now],
-  });
+  for (const c of companies) {
+    await client.query(
+      `INSERT INTO companies (id, owner_id, name, industry, size, location, risk_tier, status, owner, frameworks, arr, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [companyUuid.get(c.id), ownerId, c.name, c.industry, c.size, c.location, c.riskTier, c.status, c.owner, JSON.stringify(c.frameworks), c.arr, now],
+    );
+  }
+
+  for (const p of contacts) {
+    await client.query(
+      `INSERT INTO contacts (id, owner_id, company_id, name, title, email, phone, status, last_touch, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [randomUUID(), ownerId, companyUuid.get(p.companyId), p.name, p.title, p.email, p.phone, p.status, p.lastTouch, now],
+    );
+  }
+
+  for (const d of deals) {
+    await client.query(
+      `INSERT INTO deals (id, owner_id, company_id, name, value, stage, owner, probability, close_date, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [randomUUID(), ownerId, companyUuid.get(d.companyId), d.name, d.value, d.stage, d.owner, d.probability, d.closeDate, now],
+    );
+  }
+
+  for (const a of activities) {
+    await client.query(
+      `INSERT INTO activities (id, owner_id, company_id, type, title, contact, "when", done, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [randomUUID(), ownerId, companyUuid.get(a.companyId), a.type, a.title, a.contact, a.when, a.done, now],
+    );
+  }
+
+  await client.query("COMMIT");
+} catch (err) {
+  await client.query("ROLLBACK");
+  throw err;
 }
-
-for (const p of contacts) {
-  stmts.push({
-    sql: `INSERT INTO contacts (id, owner_id, company_id, name, title, email, phone, status, last_touch, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [randomUUID(), ownerId, companyUuid.get(p.companyId), p.name, p.title, p.email, p.phone, p.status, p.lastTouch, now],
-  });
-}
-
-for (const d of deals) {
-  stmts.push({
-    sql: `INSERT INTO deals (id, owner_id, company_id, name, value, stage, owner, probability, close_date, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [randomUUID(), ownerId, companyUuid.get(d.companyId), d.name, d.value, d.stage, d.owner, d.probability, d.closeDate, now],
-  });
-}
-
-for (const a of activities) {
-  stmts.push({
-    sql: `INSERT INTO activities (id, owner_id, company_id, type, title, contact, "when", done, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [randomUUID(), ownerId, companyUuid.get(a.companyId), a.type, a.title, a.contact, a.when, a.done ? 1 : 0, now],
-  });
-}
-
-await client.batch(stmts, "write");
 
 console.log(
   `✓ seeded CRM for ${adminEmail}: ${companies.length} companies, ${contacts.length} contacts, ${deals.length} deals, ${activities.length} activities`,
 );
+await client.end();
 process.exit(0);
