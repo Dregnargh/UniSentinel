@@ -56,6 +56,7 @@ export async function createWorkspaceUser(_prev: ActionState, formData: FormData
     passwordHash: await hashPassword(d.password),
     role: d.role,
     active: true,
+    mustChangePassword: true, // temp password — force a change on first login
     createdAt: new Date(),
   });
   revalidatePath(USERS_PATH);
@@ -108,7 +109,7 @@ export async function resetUserPassword(_prev: ActionState, formData: FormData):
   if (!target) return { error: "User not found." };
   await db
     .update(users)
-    .set({ passwordHash: await hashPassword(parsed.data.password) })
+    .set({ passwordHash: await hashPassword(parsed.data.password), mustChangePassword: true })
     .where(and(eq(users.id, parsed.data.userId), eq(users.workspaceId, workspaceId)));
   revalidatePath(USERS_PATH);
   return { ok: true };

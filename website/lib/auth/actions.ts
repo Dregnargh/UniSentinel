@@ -2,9 +2,12 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { getUserByEmail, createUser, createWorkspace } from "./user";
 import { hashPassword, verifyPassword } from "./password";
-import { createSession, destroySession } from "./session";
+import { createSession, destroySession, requireSession } from "./session";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email."),
@@ -60,6 +63,30 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     role: "admin",
   });
   await createSession({ ...user, workspaceId: user.workspaceId });
+  redirect("/app");
+}
+
+const changePasswordSchema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters.").max(200),
+    confirm: z.string(),
+  })
+  .refine((d) => d.password === d.confirm, { message: "Passwords don't match.", path: ["confirm"] });
+
+/** Self-service password change — clears the forced-change flag on success. */
+export async function changePassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const session = await requireSession();
+  const parsed = changePasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirm: formData.get("confirm"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check your details." };
+  }
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(parsed.data.password), mustChangePassword: false })
+    .where(eq(users.id, session.sub));
   redirect("/app");
 }
 

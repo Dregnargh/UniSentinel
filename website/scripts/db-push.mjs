@@ -37,11 +37,13 @@ await client.query(`CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'member',
   active BOOLEAN NOT NULL DEFAULT true,
+  must_change_password BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL
 );`);
 // Existing installs: add the new user columns if missing.
 await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE;`);
 await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true;`);
+await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;`);
 
 // --- CRM tables (fresh installs get workspace_id directly) ---
 await client.query(`CREATE TABLE IF NOT EXISTS companies (

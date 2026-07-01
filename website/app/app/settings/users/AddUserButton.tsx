@@ -47,7 +47,8 @@ export default function AddUserButton() {
                 </div>
               </div>
               <p style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
-                Share this temporary password with the user securely; they can change it later.
+                Share this temporary password securely — the user will be required to set their own
+                password the first time they sign in.
               </p>
             </div>
             <div className="modal__foot">

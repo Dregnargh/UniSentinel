@@ -28,6 +28,7 @@ export async function createUser(input: {
   passwordHash: string;
   role?: string;
   active?: boolean;
+  mustChangePassword?: boolean;
 }): Promise<User> {
   const row: User = {
     id: crypto.randomUUID(),
@@ -37,6 +38,7 @@ export async function createUser(input: {
     passwordHash: input.passwordHash,
     role: input.role ?? "member",
     active: input.active ?? true,
+    mustChangePassword: input.mustChangePassword ?? false,
     createdAt: new Date(),
   };
   await db.insert(users).values(row);
