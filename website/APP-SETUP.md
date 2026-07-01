@@ -8,8 +8,9 @@ database + an auth secret. Local dev is already wired; production needs 3 env va
 ```bash
 cd website
 npm install
-npm run db:push      # creates the users table in a local SQLite file (dev.db)
+npm run db:push      # creates the users + CRM tables in a local SQLite file (dev.db)
 npm run db:seed      # seeds a demo admin
+npm run crm:seed     # seeds the demo CRM data into the admin's workspace
 npm run dev          # http://localhost:3000
 ```
 
@@ -58,7 +59,8 @@ Run once locally, pointing at the Turso DB:
 ```bash
 cd website
 DATABASE_URL="libsql://…turso.io" DATABASE_AUTH_TOKEN="<token>" node scripts/db-push.mjs
-DATABASE_URL="libsql://…turso.io" DATABASE_AUTH_TOKEN="<token>" node scripts/db-seed.mjs   # optional demo admin
+DATABASE_URL="libsql://…turso.io" DATABASE_AUTH_TOKEN="<token>" node scripts/db-seed.mjs    # optional demo admin
+DATABASE_URL="libsql://…turso.io" DATABASE_AUTH_TOKEN="<token>" node scripts/crm-seed.mjs   # optional demo CRM data
 ```
 
 ### 5. Redeploy
@@ -69,4 +71,4 @@ Trigger a redeploy in Vercel (or push any commit). After this, `unisentinel.com/
 
 ## What's included
 - **Auth:** email/password, bcrypt-hashed, signed httpOnly session cookies (`jose`), middleware-gated `/app`. Register creates a workspace admin.
-- **CRM:** Dashboard, Contacts, Companies, Deals (kanban pipeline), Activities — built with the UniSentinel design language, seeded with realistic GRC/ERP sales data (in-app; not yet persisted to the DB).
+- **CRM:** Dashboard, Contacts, Companies, Deals (kanban pipeline), Activities — built with the UniSentinel design language, seeded with realistic GRC/ERP sales data. The DB schema + tables + seed are in place (`companies`, `contacts`, `deals`, `activities`, each scoped per workspace via `owner_id`); wiring the pages to read/write the DB is the next step.

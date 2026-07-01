@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "db:push": "node --env-file=.env scripts/db-push.mjs",
-    "db:seed": "node --env-file=.env scripts/db-seed.mjs"
+    "db:seed": "node --env-file=.env scripts/db-seed.mjs",
+    "crm:seed": "node --env-file=.env scripts/crm-seed.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
