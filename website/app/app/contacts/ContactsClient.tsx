@@ -3,6 +3,8 @@
 import React from "react";
 import { Search } from "@/components/icons";
 import { initials, statusTone } from "@/lib/crm/format";
+import DeleteButton from "@/components/app/DeleteButton";
+import { deleteContact } from "@/lib/crm/actions";
 import type { Contact } from "@/lib/db/schema";
 
 const STATUS_FILTERS = ["All", "Lead", "Engaged", "Champion", "Customer"] as const;
@@ -69,12 +71,13 @@ export default function ContactsClient({
                 <th>Email</th>
                 <th>Status</th>
                 <th>Last touch</th>
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="cell-muted" style={{ textAlign: "center", padding: "32px 16px" }}>
+                  <td colSpan={6} className="cell-muted" style={{ textAlign: "center", padding: "32px 16px" }}>
                     No contacts match your search.
                   </td>
                 </tr>
@@ -99,6 +102,9 @@ export default function ContactsClient({
                       </span>
                     </td>
                     <td className="cell-muted">{c.lastTouch}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <DeleteButton action={deleteContact} id={c.id} confirm={`Delete ${c.name}?`} />
+                    </td>
                   </tr>
                 ))
               )}

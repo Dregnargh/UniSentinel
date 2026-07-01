@@ -2,9 +2,25 @@
 
 import React from "react";
 import { Phone, Mail, Calendar, Check, Policy } from "@/components/icons";
+import DeleteButton from "@/components/app/DeleteButton";
+import { deleteActivity, toggleActivityDone } from "@/lib/crm/actions";
 import type { Activity } from "@/lib/db/schema";
 
 const actIcon = { call: Phone, email: Mail, meeting: Calendar, task: Check, note: Policy } as const;
+
+function ToggleDone({ id, done }: { id: string; done: boolean }) {
+  const [pending, start] = React.useTransition();
+  return (
+    <button
+      type="button"
+      className="row-btn"
+      disabled={pending}
+      onClick={() => start(async () => { await toggleActivityDone(id, !done); })}
+    >
+      {pending ? "…" : done ? "Mark undone" : "Mark done"}
+    </button>
+  );
+}
 
 type FilterKey = "all" | Activity["type"];
 
@@ -70,7 +86,13 @@ export default function ActivitiesClient({
                       </div>
                       <div className="feed__meta">{a.contact} · {companyName(a.companyId)}</div>
                     </div>
-                    <span className="feed__when">{a.when}</span>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                      <span className="feed__when">{a.when}</span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <ToggleDone id={a.id} done={a.done} />
+                        <DeleteButton action={deleteActivity} id={a.id} confirm={`Delete "${a.title}"?`} />
+                      </div>
+                    </div>
                   </div>
                 );
               })}
