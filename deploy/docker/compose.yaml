@@ -1,0 +1,59 @@
+# UniSentinel GRC platform — self-hosted stack (on-prem Linux / any Docker host).
+#   cp .env.example .env   # set POSTGRES_PASSWORD
+#   docker compose up -d
+# Upgrades: docker compose pull && docker compose up -d
+# (the web container applies DB migrations on start, serialized by an advisory lock).
+name: unisentinel
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: unisentinel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d unisentinel"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  web:
+    image: ${IMAGE:-unisentinel/grc}:${TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    command: ["web"]
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/unisentinel
+      DATABASE_SSL: "false" # same-host container network; front TLS with a reverse proxy
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${WEB_PORT:-8080}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  worker:
+    image: ${IMAGE:-unisentinel/grc}:${TAG:-latest}
+    restart: unless-stopped
+    command: ["worker"]
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/unisentinel
+      DATABASE_SSL: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,18 @@
+# Build context hygiene for the product image (deploy/docker/Dockerfile).
+.git
+node_modules
+**/node_modules
+**/.next
+**/dist
+*.log
+
+# The marketing site + internal CRM must NEVER ship in the product image.
+# Its package.json alone stays available for npm ci lockfile validation.
+apps/website/**
+!apps/website/package.json
+
+# Repo assets irrelevant to the product build
+.design-sync
+.github
+UniSentinel.png
+*.md

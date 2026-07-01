@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # The product must stay runnable on Linux AND Windows Server (on-prem
+  # native path) — the windows job exists to catch Unix-only assumptions the
+  # moment they land, not after a customer install fails.
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build design system
+        run: npm run build -w @unisentinel/ui
+      - name: Typecheck (ui, db, grc)
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm run test -w @unisentinel/grc
+      - name: Build product (Next standalone)
+        run: npm run build -w @unisentinel/grc
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Bundle worker + migrator
+        run: npm run build:worker -w @unisentinel/grc
+
+  # Verifies the production container assembles and the migrate/web/worker
+  # entrypoints boot against a real Postgres — the same stack a customer runs.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f deploy/docker/Dockerfile -t unisentinel/grc:ci .
+      - name: Boot stack and probe health
+        working-directory: deploy/docker
+        run: |
+          echo "POSTGRES_PASSWORD=ci-only" > .env
+          echo "IMAGE=unisentinel/grc" >> .env
+          echo "TAG=ci" >> .env
+          docker compose up -d --no-build
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/readyz; then ready=1; break; fi
+            sleep 3
+          done
+          [ "$ready" = "1" ] || { docker compose logs; exit 1; }
+          curl -fsS http://localhost:8080/healthz
+      - name: Stack logs on teardown
+        if: always()
+        working-directory: deploy/docker
+        run: docker compose down -v

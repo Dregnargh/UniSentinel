@@ -254,8 +254,10 @@ runtime in all three deployments.
 
 ### 6.7 Settings framework (requirement #7)
 - Namespaced key-value with typed zod schemas: `settings` (workspace_id, namespace, key,
-  value jsonb). Platform namespaces: branding (logo/colors for reports), auth policy, SSO,
-  SMTP, notifications, approvals, API tokens, license. **Modules contribute settings panels
+  value jsonb). Platform namespaces: **branding** (company logo upload — stored via the
+  storage driver, shown in the app-shell top bar, login page, and every report
+  header/cover — plus brand colors), auth policy, SSO, SMTP, notifications, approvals,
+  API tokens, license. **Modules contribute settings panels
   via their manifest** — settings UI is generated from panel registrations, so every module
   gets rich settings without bespoke plumbing.
 
@@ -554,8 +556,11 @@ remains independently shippable and demoable.
   email). *Demo: build a custom "Risk Viewer" role, watch UI/actions obey it.*
 - **Phase 3 — Module framework & licensing:** manifests + registries, app drawer shell,
   entitlement service, signed license files + settings upload, `entity_links`, event
-  bus/outbox, action wrapper finalized, settings framework. *Demo: toggle a stub module's
-  license, watch drawer/nav/permissions appear.*
+  bus/outbox, action wrapper finalized, settings framework — including workspace
+  **branding settings with company logo upload** (first consumer of the pluggable
+  storage driver; logo appears in the top bar and login page immediately, in report
+  headers when reports land). *Demo: toggle a stub module's license, watch
+  drawer/nav/permissions appear; upload a logo and see the shell rebrand.*
 
 ### M2 — Ecosystem proof: the first sellable trio
 - **Phase 4 — Service Catalog** (inventory, relationships, generated diagrams, CSV import).
