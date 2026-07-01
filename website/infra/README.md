@@ -36,19 +36,25 @@ terraform apply         # type 'yes' to create the DB (~5-10 min)
 ```bash
 terraform output -raw database_url          # -> DATABASE_URL for the app
 terraform output secret_arn                 # credentials in Secrets Manager
+```
 
-# Create schema + demo data (from website/, with the RDS CA for verified TLS):
-cd ..
-export DATABASE_URL="$(cd infra && terraform output -raw database_url)"
-curl -s https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o /tmp/rds-ca.pem
-export DATABASE_CA_CERT="$(cat /tmp/rds-ca.pem)"
-node scripts/db-push.mjs
-node scripts/db-seed.mjs
-node scripts/crm-seed.mjs
+The seed scripts only need `pg` + `bcryptjs`, so install just those — do **not** run the full
+`npm install` in AWS CloudShell (the website's 3D deps exceed CloudShell's 1 GB home → `ENOSPC`).
+Also don't export the RDS CA into an env var here (the global bundle is large enough to trigger
+`Argument list too long`); TLS is still on, just unverified, which is fine for a one-time seed.
+The verified CA belongs on the app runtime (Vercel), not this shell.
+
+```bash
+mkdir -p /tmp/seed && cd /tmp/seed
+cp <repo>/website/scripts/db-push.mjs <repo>/website/scripts/db-seed.mjs <repo>/website/scripts/crm-seed.mjs .
+npm init -y >/dev/null && npm install --cache /tmp/npmcache pg bcryptjs
+export DATABASE_URL="$(cd <repo>/website/infra && terraform output -raw database_url)"
+node db-push.mjs && node db-seed.mjs && node crm-seed.mjs
 ```
 
 Then set `DATABASE_URL`, `DATABASE_CA_CERT`, and `AUTH_SECRET` in Vercel and redeploy
-(see `../AWS-RDS-SETUP.md`).
+(see `../AWS-RDS-SETUP.md`). For Vercel prefer the smaller region CA bundle
+`https://truststore.pki.rds.amazonaws.com/eu-north-1/eu-north-1-bundle.pem`.
 
 ## Tear down
 
