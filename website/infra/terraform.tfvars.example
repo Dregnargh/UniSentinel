@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is git-ignored.
+
+aws_region = "eu-north-1"
+
+# REQUIRED for connectivity: allow-list the IP you'll run the seed scripts from.
+# Find yours: curl -s https://checkip.amazonaws.com
+# Use a /32 for a single IP. Avoid 0.0.0.0/0.
+allowed_cidrs = ["203.0.113.10/32"]
+
+# Optional overrides:
+# instance_class        = "db.t4g.micro"
+# allocated_storage     = 20
+# engine_version        = "16"
+# publicly_accessible   = true
+# backup_retention_days = 7
+# multi_az              = false
+# deletion_protection   = false   # set true for production
+# skip_final_snapshot   = true    # set false for production
+# enable_rds_proxy      = false   # only useful with in-VPC compute
