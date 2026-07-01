@@ -1,376 +1,636 @@
-# UniSentinel GRC application — build plan
+# UniSentinel GRC Platform — product plan & software architecture
 
-> **TL;DR of the decisions**
-> 1. **Keep this one repo.** Don't split website and product into separate repos — separate the
->    *code paths* now (`lib/grc/*`, routes under `app/app/`) and the *deployment unit* later
->    (a second Vercel project on the same repo + `app.unisentinel.com`). The runbook for that
->    future split is at the bottom so it stays a mechanical move, not a research project.
-> 2. **Build the GRC product inside `website/`**, reusing the auth/workspace stack, the
->    3-file CRM module pattern, and the console UI as-is. Zero restructuring before feature work.
-> 3. **Get the domain model right first** (Phase 0/1): common-controls model, immutable audit
->    trail, auditor role, and a `workspaces.kind` gate so customer signups never see your
->    internal CRM.
-> 4. Eight phases, each independently shippable and demoable by a solo developer.
+> **Plan v2.** Supersedes v1 (see git history). v1 assumed a SaaS-only MVP built inside the
+> existing `website/` Next.js app on Vercel. The product requirements below — **on-prem
+> deployment (Linux and Windows Server), per-module licensing, deep custom RBAC, external
+> integrations** — invalidate that approach. The GRC product becomes its **own self-hostable
+> application** in this same repo; the marketing site + internal CRM in `website/` stay as
+> they are (still on Vercel), untouched.
 
 ---
 
-## 1. GitHub for a GitLab user (your questions answered)
+## Table of contents
 
-| GitLab concept | GitHub equivalent | Notes |
+1. [Product vision & requirements recap](#1-product-vision--requirements-recap)
+2. [What changed from plan v1 and why](#2-what-changed-from-plan-v1-and-why)
+3. [Deployment models & packaging architecture](#3-deployment-models--packaging-architecture)
+4. [Technology stack decisions](#4-technology-stack-decisions)
+5. [Repository layout (monorepo)](#5-repository-layout-monorepo)
+6. [Platform core (shared kernel)](#6-platform-core-shared-kernel)
+7. [Module framework & cross-module integration](#7-module-framework--cross-module-integration)
+8. [Module specifications](#8-module-specifications)
+9. [Platform features: dashboards, reports, integrations, API](#9-platform-features-dashboards-reports-integrations-api)
+10. [Data architecture](#10-data-architecture)
+11. [Security architecture](#11-security-architecture)
+12. [Build phases & milestones](#12-build-phases--milestones)
+13. [Open decisions](#13-open-decisions)
+14. [Risks](#14-risks)
+
+---
+
+## 1. Product vision & requirements recap
+
+UniSentinel is a **modular GRC platform** sold module-by-module:
+
+- **Three delivery options:** cloud (multi-tenant SaaS), on-prem Linux server, on-prem
+  Windows Server.
+- **Modules with individual pricing.** Each module works standalone but is enriched when
+  combined with others (ecosystem). Integrations are **built first-class from day one**, with
+  defined behavior when the counterpart module is not purchased, and **automatic data
+  promotion** when a missing module is purchased later.
+- **Deep, flexible RBAC:** granular permissions on every action (view/create/edit/delete/
+  approve/export…) in every module and in settings; admins build custom roles from the
+  permission catalog and assign them to users.
+- **SSO** (OIDC/SAML) and **SMTP** mail integration.
+- **External API integrations:** vulnerability scanners, asset management, patch management, etc.
+- **Rich settings**, top-right **profile capsule**, **M365-style app drawer** (one login,
+  switch between modules).
+- **Configurable dashboards/charts** and **customizable reports**.
+
+Initial module list: Service Catalog, Risk Management, Tasks & Activities, Assessments,
+Internal Audits, Compliance, Management Hub — with room for more (the architecture treats
+modules as plugins).
+
+## 2. What changed from plan v1 and why
+
+| v1 assumption | New requirement | Consequence |
 |---|---|---|
-| Group (with multiple projects) | **Organization** (with multiple repositories) | Free. No nested subgroups — GitHub's hierarchy is flat: org → repos. |
-| Project | **Repository** | Same thing. |
-| Issue boards / epics | **GitHub Projects** | A Project is a planning board (kanban/table/roadmap) of issues + PRs. One Project **can span multiple repos** in an org — this is the closest thing to a GitLab group-level board. Personal accounts get Projects too. |
-| GitLab CI (`.gitlab-ci.yml`) | **GitHub Actions** (`.github/workflows/*.yml`) | Same idea, different YAML dialect. |
-| Protected branches | **Branch protection rules** (Settings → Branches) | Require PRs + passing checks before merging to `main`. |
+| SaaS only, Vercel serverless | On-prem Linux **and** Windows Server | The product must be a self-contained, long-running server app. New app `apps/grc`, container-first, no Vercel/serverless assumptions anywhere in product code. |
+| Build inside `website/` reusing its auth/CRM | Product ships to customer servers | Shipping the marketing site + **internal CRM** code to customers is unacceptable. Product is a separate deployable. `website/` remains internal. |
+| Monorepo restructure deferred as premature | Two real apps + shared packages | The npm-workspaces restructure is now justified and happens in Phase 0. |
+| Hand-synced raw-SQL `db-push.mjs` migrations | Customers upgrade on-prem installs themselves | **Versioned migrations (drizzle-kit) are mandatory** — automated, ordered, run on startup/CLI. |
+| `admin | member | auditor` roles | Custom role builder with per-action permissions | A real RBAC engine: permission catalog + roles + role builder UI (see §6.3). |
+| GRC features as fixed app sections | Per-module licensing + ecosystem | A module framework: manifests, entitlements/licensing, integration points with fallbacks and promotion migrations (see §7). |
+| Evidence via S3 only | On-prem has no S3 | Pluggable storage driver: S3 (cloud) / local filesystem (on-prem) / any S3-compatible (MinIO). |
 
-So: you do *not* need multiple repos to get GitLab-group-style organization. If you later want
-an umbrella, create a free **organization** (e.g. `unisentinel`) and transfer this repo into it
-(Settings → Transfer ownership; GitHub auto-redirects old URLs). A single **Projects board** can
-then track work across every repo you ever add.
+**Still valid from v1 and carried forward:** one repo (GitHub org + Projects primer stands —
+GitLab group ≈ GitHub organization, GitLab project ≈ GitHub repository, GitHub *Projects* =
+cross-repo planning boards; GitHub Actions ≈ GitLab CI); the workspace tenancy pattern; the
+immutable audit log design (actor snapshots, append-only, DB trigger); the fresh-DB
+authorization check pattern (never trust JWT claims); framework-content licensing caution
+(ISO/AICPA text is copyrighted, NIST is public domain); the pre-first-customer gate checklist
+mindset.
 
-**Recommended GitHub setup now (Phase 0 includes this):**
-- A GitHub Actions workflow running `npm install && next build` + `tsc --noEmit` for `website/`
-  on every PR — unusually valuable here because the modified Next 16.2.9 breaks
-  training-data assumptions, so a green build is the main safety net.
-- Branch protection on `main`: require a PR and the build check.
-- One Projects board with columns per plan phase below.
+## 3. Deployment models & packaging architecture
 
-## 2. Repo strategy: one repo, pre-planned split
+**One codebase, one artifact strategy: the product is a set of long-running processes
+(web + worker) + PostgreSQL + a file-storage location.** Cloud and on-prem run the *same*
+code; on-prem is simply a single-workspace instance.
 
-**Decision: keep `Dregnargh/UniSentinel` as the single repo, and build the GRC product inside
-the existing `website/` Next.js app.**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     UniSentinel instance                     │
+│                                                              │
+│  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐  │
+│  │   web (Node)   │   │ worker (Node) │   │  PostgreSQL   │  │
+│  │ Next.js         │   │ pg-boss queue │   │  16+          │  │
+│  │ standalone      │   │ cron + syncs  │   │               │  │
+│  │ UI + API        │   │ notifications │   │               │  │
+│  └───────┬────────┘   └───────┬───────┘   └───────┬───────┘  │
+│          └────────────┬───────┴───────────────────┘          │
+│                       │                                      │
+│  ┌────────────────────┴───────────────┐  ┌────────────────┐  │
+│  │ Storage driver: S3 | local FS | S3-│  │ SMTP relay     │  │
+│  │ compatible (MinIO)                 │  │ (customer's)   │  │
+│  └────────────────────────────────────┘  └────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Why not a separate repo:
-- Your entire solo-dev leverage is **reuse**: auth (`us_session` jose cookie,
-  `requireWorkspace`/`requireAdmin`), the Drizzle/pg layer, the idempotent raw-SQL
-  `db-push.mjs` pipeline, `console.css` + `AppShell` + `Modal`/`DeleteButton`, and the
-  zod/`useActionState` server-action conventions all live in `website/` and are not packaged
-  for consumption elsewhere. Splitting repos forks `lib/auth`, `lib/db`, `schema.ts` and
-  `db-push.mjs` into two drifting copies — the worst outcome given migrations are hand-synced.
-- Vercel natively supports many apps in one repo (the existing project already uses
-  Root Directory = `website`). A future second app is just a second Vercel project.
-- Two repos means two CI setups, cross-repo PRs for any feature touching marketing + product,
-  and version coordination — pure cost with zero benefit until release cadences diverge or a
-  team exists.
+### 3.1 Cloud (multi-tenant SaaS)
+- Containers on AWS (ECS Fargate or a plain EC2/docker-compose to start — solo-dev-honest),
+  RDS PostgreSQL (existing instance/Terraform evolves), S3 for files, SES SMTP for mail.
+- Multi-tenant via the `workspaces` model (shared DB, `workspace_id` scoping — §10).
+- Entitlements come from the subscription DB (billing integration later; manual admin flag first).
 
-Why not a full npm-workspaces monorepo restructure *now* (`apps/website`, `apps/app`,
-`packages/db`…): it is 1–2+ days of pure restructuring with zero demo value, it touches the
-production Vercel project and DNS before any feature exists, and every later phase becomes
-hostage to it landing cleanly on a modified Next version. It self-describes as "Phase 0 is pure
-cost". Defer it.
+### 3.2 On-prem Linux
+- **Docker Compose** distribution (the self-hosted industry standard: GitLab/Sentry model):
+  `web`, `worker`, `postgres`, optional `caddy` (TLS reverse proxy) services; named volumes for
+  DB + files; a single `.env` for configuration; `docker compose pull && up -d` upgrades
+  (migrations run automatically on web startup, after an automatic pre-upgrade `pg_dump`).
+- Air-gap friendly: images loadable from a tarball (`docker load`), **no outbound calls
+  required**, license validated offline (§6.6).
 
-**What we do instead — separate the code paths so the future split stays mechanical:**
-- All GRC code lives in `website/lib/grc/*` and new route folders under `website/app/app/`.
-- **GRC/marketing firewall:** GRC imports stay strictly under `app/app/` and `lib/grc/` — no
-  marketing page may ever transitively import `lib/db` (it throws at import when
-  `DATABASE_URL` is unset, which would take down unisentinel.com builds).
-- **No imports from `lib/crm` into `lib/grc`** — the CRM is your internal sales tool, the GRC
-  app is the product; they share auth/db/UI substrate only.
-- Keep authenticated console routes out of the index story (robots/noindex consideration for
-  the `/app` tree) as GRC routes multiply.
+### 3.3 On-prem Windows Server
+Two supported paths, in order of preference:
+1. **Docker on Windows** (Docker Engine/WSL2 or a Linux VM) — same compose bundle. Many
+   enterprise Windows shops now allow this; it's the zero-extra-engineering path.
+2. **Native Windows package** for shops that forbid Docker/WSL2:
+   - Node.js LTS runtime + the standalone build, installed as **Windows Services** (web +
+     worker) via NSSM or `node-windows`; PostgreSQL for Windows (EDB installer); file storage
+     on an NTFS path; optional Caddy-for-Windows service for TLS.
+   - Distributed as a PowerShell-driven installer (later: WiX/MSI).
+   - **Engineering constraints this imposes on ALL product code:** no Unix-only dependencies,
+     `path.join` everywhere, no shelling out to POSIX tools, case-insensitive-FS safe imports,
+     services must handle Windows service stop signals. **CI runs a `windows-latest` build +
+     test job from Phase 0** so Windows compatibility is enforced continuously, not retrofitted.
 
-The full **future-split runbook** (second Vercel project, `app.` CNAME, redirects, cookie
-scope) is in §8 — deliberately preserved so the deferred decision stays cheap.
+### 3.4 Versioning & upgrades
+- Single platform version (semver) covering core + all modules — a "release train"; modules
+  are feature-flagged by license, not separately versioned artifacts (drastically simpler for
+  on-prem support).
+- Migrations are strictly forward-only, ordered, and idempotent to re-run; every release notes
+  its migration set. Upgrade doc: backup → pull → migrate (automatic) → verify `/healthz`.
+- `/healthz` (liveness) and `/readyz` (DB + migrations current) endpoints; structured JSON
+  logs; optional Prometheus metrics endpoint (nice for enterprise on-prem).
 
-## 3. Architecture
+## 4. Technology stack decisions
 
-GRC lives at `unisentinel.com/app` alongside the CRM, as new route modules under
-`website/app/app/<module>/` (frameworks, controls, evidence, risks, policies, audits, vendors,
-incidents, tasks), inheriting the existing **three-layer gate**:
-`proxy.ts` edge JWT check (matcher already covers `/app/:path*` — no change needed) →
-`app/app/layout.tsx` session + `mustChangePassword` check → per-page/action
-`requireWorkspace()`.
+| Concern | Decision | Rationale |
+|---|---|---|
+| Web framework | **Next.js (App Router), `output: 'standalone'`**, self-hosted Node server | Team knowledge + proven console patterns from `website/`; standalone output runs anywhere Node runs (Linux/Windows/containers). No Vercel-only features in product code. |
+| UI | **`@unisentinel/ui`** (root design system) finally consumed as `packages/ui`; React 19 bump; console patterns (AppShell → new App Drawer shell) | Ends the two-UI-systems duplication; the product is the reason the design system exists. |
+| DB + ORM | **PostgreSQL 16+** everywhere; **Drizzle ORM + drizzle-kit migrations** | One DB engine for all three delivery models; drizzle already in use; kit generates versioned SQL migrations (replaces hand-synced `db-push.mjs` for the product). |
+| Background jobs | **pg-boss** (Postgres-backed queue + cron) in a `worker` process | No Redis = one less on-prem moving part. Handles scheduled connector syncs, notification digests, report generation, promotion migrations. |
+| Auth/session | jose HS256 httpOnly cookie sessions (pattern reused from `website/`), bcrypt; **TOTP 2FA**; **OIDC** via `openid-client`; SAML in a later phase | OIDC covers Entra ID/Okta/Google — the 90% enterprise case; SAML added when a deal demands it. |
+| Mail | **nodemailer over SMTP** only | Works identically in cloud (SES SMTP creds) and on-prem (customer relay). No SaaS mail API dependency. |
+| File storage | Storage interface with **S3 driver + local-FS driver** (any S3-compatible endpoint works ⇒ MinIO supported) | One abstraction, three deployment models. |
+| Diagrams (network/data-flow) | **React Flow**; nodes/edges persisted as jsonb; MVP = auto-generated views from catalog relationships, manual editing later | Buying/building a full Visio clone is a trap; derive diagrams from structured data first. |
+| Charts | Recharts (or ECharts if dashboard needs outgrow it) | Declarative, fits the widget model. |
+| PDF/report export | Server-rendered print-CSS pages + **headless Chromium (Playwright)** in the worker | Highest-fidelity output, same engine in Docker image and Windows install; heavy dependency accepted (flagged in §13). |
+| Validation | zod (v4 already in use) shared between server actions and REST API | Existing convention. |
+| Licensing | **Ed25519-signed license files** for on-prem; DB entitlements for cloud; one entitlement service over both | Offline verification, no phone-home required (§6.6). |
 
-- **Module pattern:** mirror `lib/crm` exactly — `lib/grc/{queries.ts, actions.ts, format.ts}`
-  plus the 3-file route pattern (`page.tsx` async server component, `<Module>Client.tsx`
-  island, `New<Module>Button.tsx` modal form). Mutations use the two blessed shapes:
-  `(prev: ActionState, formData)` via `useActionState` for create/edit, scalar-arg actions via
-  `useTransition` for status moves (the `toggleActivityDone` precedent). Every mutation ends
-  with a shared `revalidateGrc(page)` helper (`revalidatePath(page)` + `revalidatePath("/app")`).
-- **RBAC:** extend `users.role` from `admin | member` to `admin | member | auditor` (plain text
-  column; widen the `z.enum` in `lib/users/actions.ts`). New `requireRole(...roles)` helper in
-  `lib/auth/session.ts` modeled on `requireAdmin`'s **fresh DB check — never trust the JWT
-  role claim** (7-day tokens go stale; a demoted auditor must lose access immediately).
-  Auditors are read-only: every GRC mutation starts with `requireRole("admin", "member")`.
-  Finer-grained ownership (risk owner, control owner) is row-level via `owner_user_id`
-  columns, not new roles.
-- **CRM/GRC tenant split:** add `workspaces.kind text NOT NULL DEFAULT 'customer'`
-  (`'internal'` for UniSentinel's own workspace, set by seed). `AppShell`'s hardcoded NAV
-  becomes `NAV_GRC` + `NAV_CRM` keyed off the workspace kind, so customer workspaces never see
-  the internal CRM. **This must land before any external signup.**
-- **Audit trail:** `lib/grc/audit.ts` exports `logAudit({workspaceId, actor, action,
-  entityType, entityId, summary, diff})`, called inside every GRC server action after its
-  mutation. Append-only `audit_log` table, immutability enforced twice (no update/delete
-  actions exist + a DB trigger raising on UPDATE/DELETE — see risks for its honest limits).
-- **Data layer:** same singleton drizzle `db`, same RDS. Every new table lands in **both**
-  `lib/db/schema.ts` and `scripts/db-push.mjs` in the same commit; a schema-drift check script
-  (diff `information_schema` against `schema.ts`) is wired as an npm script in Phase 1 —
-  with ~18 hand-synced tables this is the single biggest correctness hazard.
-- **UI:** GRC screens use the `console.css` vocabulary as-is. Wiring the root
-  `@unisentinel/ui` package into the website is **consciously deferred**: it pins React 18
-  devDeps vs the site's React 19, and its `--us-*` tokens don't match the console's unprefixed
-  ones — a reconciliation project, not a ship task. The duplication is a known invoice, not drift.
-- **Standing constraint:** this is a **modified Next.js 16.2.9** (`proxy.ts` not
-  `middleware.ts`, async `cookies()`, etc.). Every phase starts with `cd website && npm install`
-  and reading `node_modules/next/dist/docs` before writing Next-touching code, per `AGENTS.md`.
+## 5. Repository layout (monorepo)
 
-## 4. Data model
+npm workspaces, single committed root lockfile. Executed in Phase 0.
 
-House conventions everywhere unless flagged: `id` text PK = `crypto.randomUUID()` app-side;
-`created_at timestamptz NOT NULL` passed as `new Date()`; enum-ish columns = plain text +
-`z.enum` in actions + tone maps in `lib/grc/format.ts`; `workspace_id text NOT NULL`
-FK→workspaces ON DELETE CASCADE + `idx_<table>_workspace`; every query filtered by the
-`workspaceId` from `requireWorkspace()`; cross-FK form inputs validated with
-`assertWorkspaceX` before insert. Dates that drive "overdue" logic are **timestamptz, not
-free-text** (deviation from the CRM's string dates — overdue must be computable).
+```
+/package.json                 # workspaces: ["apps/*", "packages/*"]
+/apps/website/                # ← git mv website; marketing + internal CRM; Vercel; UNCHANGED behavior
+/apps/grc/                    # THE PRODUCT. Next.js standalone
+│   ├── app/                  #   routes: (auth)/, (platform)/settings, m/<module>/...
+│   ├── modules/<key>/        #   module folders (manifest, schema, queries, actions, ui/, promote/)
+│   ├── platform/             #   shared kernel: rbac/, entitlements/, events/, links/, storage/,
+│   │                         #   notify/, settings/, dashboards/, reports/, api/, audit/
+│   └── worker/               #   worker entrypoint (pg-boss jobs; imports module job definitions)
+/packages/ui/                 # ← git mv src; @unisentinel/ui, React 19
+/packages/db/                 # product schema (core + per-module files), drizzle-kit migrations, seeds
+/packages/config/             # shared tsconfig/eslint
+/deploy/
+│   ├── docker/               # Dockerfile (web+worker from one image), compose.yaml, caddy config
+│   ├── windows/              # PowerShell installer, NSSM service defs, upgrade script
+│   └── cloud/                # Terraform (evolved from website/infra)
+/.github/workflows/           # ci.yml: lint+typecheck+test+build on ubuntu AND windows; release.yml: images + bundles
+```
 
-**Two deliberate deviations from house conventions:**
+Notes:
+- `apps/website` keeps its own DB/schema (auth + CRM) exactly as today — **the product does
+  not share the website's database or sessions.** Cloud signup flow can later bridge
+  marketing → product provisioning via an API, not shared tables.
+- Modules live as folders inside `apps/grc`, not separate packages: single version train,
+  no publish overhead, but a lint rule enforces that modules only import each other through
+  `platform/` contracts (§7.4).
 
-**(A) The framework library is GLOBAL (no `workspace_id`).** Immutable once seeded,
-append-only versioning (ISO 27001:2027 = new rows, never edits), zero user writes — per-tenant
-copies would only bloat and drift.
+## 6. Platform core (shared kernel)
 
-**(B) User-reference FKs on GRC rows use ON DELETE SET NULL, not CASCADE.** Deleting a
-teammate must not delete the risk register — compliance records outlive their owners.
-Workspace deletion still cascades via `workspace_id`. Apply consistently in *both* `schema.ts`
-and `db-push.mjs`.
+Everything modules stand on. Built once, in Phases 0–2, before any module.
 
-### Tables (~18 new)
+### 6.1 Tenancy
+- `workspaces` (tenant), `users`, `user_workspaces` (cloud users may belong to multiple
+  workspaces later; MVP: one). Every domain table carries `workspace_id` FK + index (v1
+  convention retained). On-prem instance = exactly one workspace, created by the setup wizard —
+  **the code path is identical in all deployments.**
+- Org structure lives in the platform, not a module (needed by RBAC data-scopes and several
+  modules): `org_units` (tree: company → business line → department), referenced by Service
+  Catalog, Risk, HR-ish assignments.
 
-**Global reference (seeded, read-only):**
-- `frameworks` — id, slug UNIQUE (`iso27001-2022`), name, version, description
-- `framework_requirements` — id, framework_id FK, code (`A.5.1`, `CC6.1`), title, description,
-  parent_id (self-FK for domain→requirement hierarchy), sort_order
+### 6.2 Authentication
+- Local email/password (bcrypt) + forced-change + lockout policy + password policy settings.
+- **TOTP 2FA** (enterprise on-prem expectation).
+- **SSO:** OIDC per workspace (cloud) / per instance (on-prem): issuer, client id/secret,
+  claim→attribute mapping, JIT user provisioning with a default role, option to disable local
+  login. SAML + SCIM provisioning are later phases (§12).
+- Sessions: jose cookie pattern from `website/`, with server-side session records
+  (`sessions` table) so admins can list/revoke sessions — an auditability expectation for GRC.
 
-**Controls — the spine (common-controls model: one control satisfies many requirements across
-frameworks; this is the core differentiator of modern GRC tooling and drives the compliance-% math):**
-- `workspace_frameworks` — workspace activation, UNIQUE(workspace_id, framework_id)
-- `controls` — code, name, description, status (`Not Started | In Progress | Implemented |
-  Not Applicable`), owner_user_id (SET NULL), review_frequency, next_review_at, timestamps
-- `control_mappings` — control_id ↔ requirement_id many-to-many, UNIQUE pair; validate the
-  control is in-workspace and the requirement belongs to an activated framework.
-  Compliance % per framework = mapped requirements with ≥1 Implemented control / total
-  (computed in JS, `getDashboardData` pattern)
+### 6.3 RBAC engine (requirement #4 — a first-class subsystem)
+- **Permission catalog:** static, code-generated from module manifests at build time. Naming:
+  `module.resource.action`, e.g. `risk.risks.view|create|edit|delete|approve|export`,
+  `catalog.assets.import`, `platform.roles.manage`, `platform.settings.smtp`. Actions beyond
+  CRUD are explicitly declared per resource (approve, assign, publish, close…).
+- **Tables:** `roles` (workspace-scoped, `is_system` for built-ins: Owner, Administrator,
+  read-only Auditor, per-module presets), `role_permissions` (role_id, permission text),
+  `user_roles` (many-to-many; a user's effective set = union).
+- **Role builder UI:** settings screen listing the catalog grouped by module → resource →
+  action with tri-state group toggles; clone-from-existing; shows per-role member count;
+  guardrails (cannot edit system roles; cannot remove the last user holding
+  `platform.roles.manage`).
+- **Enforcement:** `requirePermission(ctx, "risk.risks.approve")` at the top of every server
+  action and API handler — fresh DB check per request (v1 lesson: never trust token claims),
+  memoized per-request. UI receives the effective permission set from the layout to hide
+  disallowed actions (defense in depth: server always re-checks).
+- **Data scopes (v2, schema-ready):** optional restriction of a role to org_units ("Risk
+  Manager for Retail BU"). `role_scopes` table exists from day one; enforcement lands later.
+- **Approval primitive:** shared `approvals` service — modules request approval for an action
+  (`entity_type/id, action, requested_by, rule`), settings define per-action approval rules
+  (role or named users, N-of-M), approvers get tasks/notifications; the audit log records the
+  chain. Used by risk acceptance, policy publication, audit report issuance, etc.
 
-**Risks (5×5 hardcoded MVP; per-workspace scale labels via a later `risk_settings` table):**
-- `risks` — title, description, category, status (`Open | In Treatment | Accepted | Closed`),
-  owner_user_id, inherent_likelihood/impact int 1–5, residual_likelihood/impact nullable,
-  treatment_strategy (`Accept | Mitigate | Transfer | Avoid`), treatment_notes, review_date
-  timestamptz. `riskScore(l,i)` and Low/Med/High/Critical banding are **pure functions** in
-  `format.ts` (extend the existing `riskTone` map)
-- `risk_controls` — mitigating-control links justifying residual < inherent, UNIQUE pair
+### 6.4 Audit log
+Carried from v1, platform-wide: append-only `audit_log` with actor snapshot (id nullable +
+name/email text), `action`, `entity_type/id`, `diff jsonb`, workspace-scoped, indexed,
+paginated from day one, DB trigger blocking UPDATE/DELETE, `logAudit()` called by every
+mutation via the action wrapper (§7.4). Product runs with a **dedicated low-privilege DB role**
+(no superuser; no UPDATE/DELETE grant on `audit_log`) — feasible now that we control the
+runtime in all three deployments.
 
-**Evidence (reusable across controls):**
-- `evidence` — title, type (`Document | Screenshot | Link | Report`), url, file_key (S3, Phase 7),
-  status (`Requested | Collected | Approved | Expired`), collected_at, valid_until timestamptz
-  (freshness computed at read time — past `valid_until` renders Expired, no cron), owner_user_id
-- `control_evidence` — control ↔ evidence join, UNIQUE pair
+### 6.5 Notifications & SMTP
+- `notifications` (in-app inbox: bell in the top bar) + email via SMTP with per-user
+  preferences and per-event templates; digest option. Worker sends mail (retry via pg-boss).
+- Event-driven: modules emit domain events (§7.3); notification rules map events → recipients
+  (entity owner, role holders, explicit users).
 
-**Policies (versioned, immutable-by-construction):**
-- `policies` — title, category, owner_user_id, review_frequency, next_review_at,
-  current_version_id nullable
-- `policy_versions` — policy_id, version int, content (markdown), status (`Draft | In Review |
-  Approved | Archived`), approved_by_user_id, effective_date, UNIQUE(policy_id, version).
-  Approved versions have **no edit action**; new draft = version+1; approving bumps
-  `current_version_id` and archives the prior
-- `policy_attestations` — policy_version_id, user_id (CASCADE here — attestation is meaningless
-  without the user), attested_at, UNIQUE(policy_version_id, user_id)
+### 6.6 Licensing & entitlements
+- **Entitlement service** answers `isModuleEnabled(workspaceId, moduleKey)` and seat questions;
+  backed by:
+  - Cloud: `module_entitlements` rows (module_key, status, seats, expires_at) managed by
+    internal admin tooling (billing automation later).
+  - On-prem: an **Ed25519-signed license file** (JSON: customer, modules[], seats, expiry,
+    instance binding optional) uploaded in settings; verified offline against the public key
+    baked into the build; grace period on expiry (read-only mode after grace, never data lock-in).
+- Enforcement points: app-drawer visibility (unlicensed modules shown greyed with "contact
+  sales" — deliberate upsell surface), route guard `requireModule(key)`, server action guard,
+  API guard, and **integration-point resolution** (§7.2).
 
-**Audits:** `audits` (name, framework_id nullable, type `Internal | External`, status
-`Planned | Fieldwork | Reporting | Closed`, start/end, lead_user_id) and `audit_findings`
-(audit_id, control_id nullable, title, severity, status `Open | In Remediation | Closed`,
-due_date, owner_user_id)
+### 6.7 Settings framework (requirement #7)
+- Namespaced key-value with typed zod schemas: `settings` (workspace_id, namespace, key,
+  value jsonb). Platform namespaces: branding (logo/colors for reports), auth policy, SSO,
+  SMTP, notifications, approvals, API tokens, license. **Modules contribute settings panels
+  via their manifest** — settings UI is generated from panel registrations, so every module
+  gets rich settings without bespoke plumbing.
 
-**Vendors:** `vendors` (name, category, tier `Critical | High | Medium | Low`, status,
-owner_user_id, website, data_shared, next_review_at) and `vendor_assessments` (vendor_id,
-status `Sent | Received | Reviewed`, score, notes, assessed_at, plus an `answers jsonb`
-column typed `$type<Record<string, string>>` for future questionnaire structure)
+### 6.8 App shell UX (requirements #8, #9)
+- **App drawer** (top-left grid icon, M365-style): tiles for each licensed module + Settings +
+  Management Hub; unlicensed tiles greyed. One session, module switch = client-side nav.
+- **Profile capsule** (top-right): avatar/initials, name, role badges, "My profile" (profile,
+  password, 2FA, notification prefs, sessions), workspace switcher (cloud), sign out.
+- Persistent top bar: drawer, global search (per-module providers later), notifications bell,
+  profile capsule. Left sidebar is **per-module** navigation.
 
-**Incidents:** `incidents` — title, severity, status (`Open | Investigating | Resolved |
-Closed`), occurred_at, resolved_at, owner_user_id, related_risk_id nullable FK→risks SET NULL
+## 7. Module framework & cross-module integration
 
-**Tasks (one generic engine powering treatments, evidence requests, remediation, reviews,
-attestations):** `tasks` — title, kind (`Treatment | Evidence | Remediation | Review |
-Attestation | General`), status, due_date timestamptz, assignee_user_id, polymorphic
-entity_type/entity_id (app-validated, indexed), completed_at
+The heart of requirement #2/#3. Modules are **statically compiled plugins**: all code ships in
+every build; licensing decides what activates. (No dynamic plugin loading — massively simpler
+to test and support on-prem, and the license file stays the single activation mechanism.)
 
-**Audit log (the product's own auditability):**
-- `audit_log` — workspace_id CASCADE, actor_user_id SET NULL, **actor_name + actor_email
-  snapshotted** (history survives user deletion), action (`control.status_changed`),
-  entity_type, entity_id, summary, `diff jsonb` ({before, after}), created_at.
-  Indexes: (workspace_id, created_at DESC) and (workspace_id, entity_type, entity_id).
-  **Paginated from day one** — it grows on every mutation across all modules; never
-  fetch-everything, and cap the dashboard feed.
+### 7.1 Module manifest
+Each `modules/<key>/manifest.ts` declares, typed:
 
-## 5. Build phases
+```ts
+{
+  key: "risk", name: "Risk Management", icon, description,
+  permissions: [...resource/action declarations...],      // feeds the RBAC catalog
+  navigation: [...sidebar items...],
+  entityTypes: ["risk", "treatment"],                     // registered for links/audit/search
+  provides: [...integration points offered...],           // e.g. catalog provides "scope-entities"
+  consumes: [{ point: "scope-entities", from: "catalog",  // + REQUIRED fallback declaration
+               fallback: "local-list", promotion: promoteScopeItems }],
+  dashboardWidgets: [...], reportTypes: [...], settingsPanels: [...],
+  jobs: [...worker job definitions...],
+  events: { emits: ["risk.created", ...], listens: ["task.completed", ...] },
+}
+```
 
-Each phase is independently shippable and demoable. Resist merging phases — that sizing is the
-only sustainable cadence for one person.
+The platform aggregates manifests at build time: permission catalog, app drawer, settings
+tree, widget/report registries, event wiring, and the `entity_types` registry all derive from
+manifests — **adding a module never edits platform code.**
 
-### Phase 0 — Foundations: audit trail, RBAC, tenant split, GitHub setup
-Cross-cutting substrate every module depends on (retrofitting an immutable trail under existing
-features never happens cleanly).
-- Tables: `audit_log` (+ block-update/delete trigger in `db-push.mjs`), `workspaces.kind`.
-- Code: `lib/grc/audit.ts` `logAudit` helper; auditor role (`z.enum` widened, `requireRole` in
-  `lib/auth/session.ts`); `AppShell` NAV split (GRC vs internal CRM by workspace kind); empty
-  `lib/grc/{queries,actions,format}.ts` scaffolding; **retrofit `logAudit` into the existing
-  user-management actions as the proving ground**.
-- GitHub: Actions workflow (`next build` + typecheck on PR), branch protection on `main`,
-  Projects board seeded with these phases.
-- **Deliverable:** `/app/settings/audit-log` page (admin-only, feed UI) showing who did what
-  when; an auditor login that can read but not mutate; a customer-kind workspace that sees no
-  CRM nav; CI green on PRs. Independently valuable even if GRC stopped here.
+### 7.2 Integration points: the provide/consume/fallback/promote pattern
+The rule from requirement #3, made mechanical. Every cross-module dependency is a named
+**integration point** with four mandatory parts:
 
-### Phase 1 — Framework library, controls, compliance posture
-The domain spine.
-- Tables: `frameworks`, `framework_requirements` (global, seeded), `workspace_frameworks`,
-  `controls`, `control_mappings`.
-- `scripts/grc-library-seed.mjs`: **NIST CSF 2.0 full text (public domain)** + ISO 27001:2022
-  Annex A and SOC 2 TSC as **codes + short paraphrased titles only** (ISO/AICPA copyright —
-  getting this wrong is a legal problem for a compliance vendor specifically).
-- Screens: `/app/frameworks` (activate, per-framework readiness %), `/app/frameworks/[slug]`
-  (requirement tree with mapped-control badges), `/app/controls` (list + status seg filter +
-  mapping picker modal; status changes via scalar server action + `useTransition`).
-- Engineering: schema-drift check script wired as `npm run db:check`; first unit tests for the
-  compliance-% math (see §6).
-- **Deliverable:** activate SOC 2, create controls, map one control to multiple requirements
-  across two frameworks (the common-controls differentiator), watch readiness % move.
+1. **Provider interface** — e.g. Service Catalog provides `scope-entities`: search/list/get
+   over its entity types (assets, services, departments…).
+2. **Consumer usage** — e.g. Risk's scope picker calls the point through the platform resolver:
+   `resolve("scope-entities")` returns the Catalog implementation **iff catalog is licensed**,
+   else the consumer's declared fallback implementation.
+3. **Fallback (standalone mode)** — a module-local lightweight substitute, deliberately
+   shaped for later promotion. E.g. Risk ships `risk_scope_items` (id, workspace_id, name,
+   kind, notes): standalone customers keep a simple list, exactly as required.
+4. **Promotion migration** — a wizard + idempotent routine, part of the module's
+   definition-of-done, run when the providing module is activated later: it walks fallback
+   rows, creates/dedupes real provider entities (user-assisted matching UI: "these 3 scope
+   items look like the same server"), rewrites references in `entity_links`, and marks
+   fallback rows migrated (kept for audit, hidden from UI). Runs as a worker job with a
+   dry-run preview.
 
-### Phase 2 — Risk register with heatmap and treatment
-Pulled forward (ahead of evidence) because it's the screen GRC buyers ask to see first.
-- Tables: `risks`, `risk_controls`. `format.ts` gains `riskScore`, band thresholds, `riskTone`
-  extension (+ unit tests — pure functions).
-- Screens: `/app/risks` — table + **5×5 heatmap as a pure-CSS grid** (client-side grouping like
-  the read-only deals kanban; cells colored by band, click filters the table), inherent vs
-  residual toggle, risk detail linking mitigating controls. No drag-and-drop (none installed).
-- **Deliverable:** populate 8 risks, show the heatmap, link controls to a risk, record residual
-  below inherent with a treatment strategy.
+**Uniform reference storage makes promotion cheap:** consumers never store raw FK columns to
+other modules' tables. All cross-module references go through one table:
 
-### Phase 3 — Evidence collection and the task engine
-- Tables: `evidence`, `control_evidence`, `tasks`. Evidence is metadata + URL (**no file
-  storage yet** — deliberate; S3 in Phase 7; don't promise document upload in demos before then).
-- Screens: `/app/evidence` (freshness computed from `valid_until` at read time), attach/detach
-  on the control view, `/app/tasks` (assignee select, kind/status filters, done toggle).
-  "Request evidence" creates a kind=Evidence task linked to the control; risk treatments now
-  spawn kind=Treatment tasks (wiring the Phase 2 hook).
-- **Deliverable:** attach evidence to a control, see a stale-evidence warning, assign and
-  complete a collection task. Controls now carry proof, not just status.
+```
+entity_links(id, workspace_id, source_type, source_id, target_type, target_id,
+             link_kind, created_by, created_at, UNIQUE(source, target, kind))
+```
 
-### Phase 4 — Policy management: versioning and attestation
-- Tables: `policies`, `policy_versions`, `policy_attestations`.
-- Screens: `/app/policies` (list with current version + attestation-% progress bar), detail
-  with version history, markdown in a textarea (no editor dependency) rendered read-only when
-  Approved, lifecycle Draft→In Review→Approved, "Start attestation" creates kind=Attestation
-  tasks for all active users, member-facing attest button.
-- **Notification gap to close here:** attestation campaigns without notification are demo-only
-  theater — add minimal transactional email (attestation request, task assignment) via a
-  simple provider (e.g. Resend/SES), plus email verification at registration before opening
-  signups (unverified open signup on a GRC product is an abuse vector).
-- **Deliverable:** publish Acceptable Use Policy v1, member attests, publish v2 and show
-  attestation resetting per version.
+`target_type` may be a fallback type (`risk:scope_item`) or a provider type
+(`catalog:asset`); promotion = rewrite `target_*` in place. Referential integrity is enforced
+at the action layer (`assertWorkspaceEntity(type, id)` via the entity-type registry), the
+same trust model as workspace scoping.
 
-### Phase 5 — Audits and findings (the auditor role gets its surface)
-- Tables: `audits`, `audit_findings`.
-- Screens: `/app/audits`, audit detail scoped to a framework showing each requirement with
-  control status + evidence freshness (a read join over Phases 1–3 — why audits come after
-  evidence), findings with severity badges, "Create remediation task" from a finding.
-- **Deliverable:** run an internal SOC 2 readiness audit, raise two findings, assign
-  remediation, close one. External-auditor read-only login works.
+### 7.3 Domain events
+In-process, synchronous-by-default event bus with a persisted **outbox** table
+(`domain_events`) so the worker and integrations can consume reliably:
+- Emit: `task.completed {taskId, links}` → Risk listens: recompute linked treatment-plan
+  progress. `assessment.submitted` → Compliance updates requirement status. Events fire only
+  into licensed listeners; unlicensed listeners are inert (no error, by construction).
+- The outbox doubles as the webhook source (§9.3) and keeps modules decoupled: **modules
+  never import each other's actions — only platform contracts and events.** (Enforced by an
+  ESLint boundary rule on `modules/*` imports.)
 
-### Phase 6 — Vendor risk and incidents
-- Tables: `vendors`, `vendor_assessments`, `incidents`.
-- Screens: `/app/vendors` (tier/status list, overdue review badge, assessment log — not a
-  questionnaire engine yet), `/app/incidents` (severity/status, occurred/resolved, "raise as
-  risk" shortcut creating a risk from an incident).
-- **Deliverable:** onboard a Critical-tier vendor with an assessment on file, log an incident,
-  escalate it into the risk register. Full GRC acronym covered.
+### 7.4 Module developer contract (definition of done, every module)
+- Schema in `packages/db/modules/<key>.ts` + generated migration; all tables workspace-scoped.
+- Every mutation wrapped by the platform action wrapper, which enforces in order:
+  `requireModule` → `requirePermission` → zod validation → mutation → `logAudit` → event emit
+  → `revalidate`. One wrapper = impossible-to-forget audit/RBAC.
+- Standalone mode works: all `consumes` points have working fallbacks; **promotion routine +
+  tests shipped in the same phase**, not later.
+- Contributes: permissions, nav, ≥1 dashboard widget, ≥1 report type, settings panel, seeds
+  (demo data for trials — v1's onboarding lesson), unit tests for domain math, an isolation
+  test (two workspaces cannot see each other).
 
-### Phase 7 — Reporting, evidence files, production hardening
-- Dashboard rework: framework readiness tiles, open risks by band, overdue tasks/reviews,
-  attestation coverage, recent (capped) audit-log feed — one `getGrcDashboardData(workspaceId)`
-  via `Promise.all`.
-- CSV export routes per module + a printable readiness report page (print CSS, no PDF library).
-- **S3 evidence uploads:** bucket + scoped IAM in `website/infra` Terraform; **browser
-  presigned PUT/GET only** (Vercel function body limits forbid proxying bytes); private
-  bucket; server-side size/type validation; `evidence.file_key` wired.
-- Review cadence: controls/policies past `next_review_at` auto-spawn kind=Review tasks
-  (computed on dashboard load or a Vercel cron).
-- Infra gate — see §7 checklist before the first paying tenant.
-- **Deliverable:** a sellable v1 — real file evidence, exportable reports, an executive
-  dashboard, and an infra posture safe for multi-tenant customer data.
+## 8. Module specifications
 
-### Onboarding (cross-cutting, land by Phase 4)
-A new signup currently lands in nine empty modules. Add a per-workspace **sample-data seeder**
-(`crm-seed.mjs` is the in-repo precedent) or a first-run "activate a framework → create your
-first control → add a risk" guided empty-state, so every phase's demo story works for real
-signups too.
+Per module: purpose, core entities, standalone behavior, provides/consumes (+fallback/promotion).
+Schemas follow house conventions (text UUID PKs, timestamptz, plain-text enums + zod, jsonb
+where genuinely dynamic).
 
-## 6. Testing strategy (minimal but real)
+### 8.1 Service Catalog (the provider hub)
+Company context: what the organization *is* and *has*.
+- **Entities:** `org_units` come from platform; `services`/business processes (owner, criticality,
+  org_unit, dependencies service↔service and service↔asset); `assets` (types: hardware,
+  software, data, people, facility, cloud; fields per type via a typed jsonb `attributes` +
+  configurable asset-type templates in settings; owner, custodian, location, classification,
+  lifecycle status); `asset_relationships` (typed edges: hosts, connects-to, stores,
+  processes); `data_flows` (source, target, data classification, protocol).
+- **Diagrams:** network & data-flow views **generated** from `asset_relationships`/`data_flows`
+  with React Flow (auto-layout); saved views with manual position overrides (jsonb); free-form
+  drawing is out of scope for MVP.
+- **Standalone:** full value alone as asset/service inventory + diagrams.
+- **Provides:** `scope-entities` (search/list over services/assets/org_units — consumed by
+  Risk, Assessments, Audits, Compliance), `asset-import` sink for integration connectors (§9.3).
+- **Consumes:** `activity-link` from Tasks (fallback: none — link section simply hidden).
 
-The domain has pure, high-consequence math that is trivially unit-testable — test it:
-- `riskScore`, band thresholds, compliance-% per framework, attestation coverage, evidence
-  staleness (all pure functions in `format.ts`/`queries.ts` aggregation helpers).
-- One workspace-isolation smoke test: two workspaces, assert queries never return the other's
-  rows (the exact place a forgotten `eq(workspaceId)` becomes a breach).
-- CI runs these + `next build` + typecheck on every PR.
+### 8.2 Risk Management
+- **Entities:** `risk_methodologies` (configurable scales 3×3..5×5, likelihood/impact criteria
+  text per level, score bands, appetite/tolerance thresholds — settings-driven, per workspace);
+  `risks` (ref code, title, category taxonomy (settings), org_unit, owner, status workflow
+  Draft→Assessed→In Treatment→Accepted/Closed, inherent & residual L/I, next_review_at);
+  `risk_assessment_history` (point-in-time re-assessments — trend charts need history, a v1 gap
+  fixed by design); `treatments` (strategy, plan, cost, target_date, progress %);
+  `risk_acceptances` via the platform approval primitive.
+- **Standalone:** scope = local list (`risk_scope_items`); treatment actions = local
+  checklist (`treatment_actions`).
+- **Consumes:** `scope-entities` ← Catalog (fallback `risk_scope_items`; promotion: wizard
+  matches items to catalog entities, rewrites `entity_links`); `activities` ← Tasks (treatment
+  plan links to real activities; progress auto-rolls-up from `task.completed`/progress events;
+  fallback `treatment_actions` simple checklist; promotion: checklist items → tasks under an
+  auto-created "Treatment: <risk>" activity); `controls` ← Compliance (mitigating controls;
+  fallback: free-text control references).
+- **Provides:** `risks-by-entity` (Catalog shows risks per asset; Management Hub aggregates),
+  heatmap + top-risks dashboard widgets, risk register/treatment status reports.
 
-## 7. Gate checklist before the first external tenant
+### 8.3 Tasks & Activities
+Task management with light project capabilities — the execution engine other modules delegate to.
+- **Entities:** `activities` (projects/plans: phases jsonb or child table, owner, dates,
+  status, progress roll-up), `tasks` (activity_id nullable — standalone tasks allowed,
+  assignee, due, priority, status, checklist jsonb, recurrence rule, `origin` entity link:
+  the risk/finding/requirement that spawned it), `task_comments`, attachments via platform
+  storage.
+- **Views:** list, kanban (by status/assignee), calendar; "My tasks" cross-module inbox.
+- **Standalone:** a competent team task manager.
+- **Provides:** `activities`/`task-spawn` integration point (Risk treatments, Audit finding
+  remediation, Compliance gap actions, Management Hub meeting actions all create linked tasks);
+  emits `task.completed`, `task.progress` events consumed for roll-ups.
+- **Consumes:** nothing hard; enriches origin badges when source modules are present.
 
-- [ ] `workspaces.kind` NAV gate live (customers can't see the internal CRM)
-- [ ] Email verification on registration + transactional email working
-- [ ] `enable_rds_proxy = true` + `DATABASE_CA_CERT` verified TLS in Vercel
-- [ ] RDS `deletion_protection = true`, PITR/backups verified by an actual restore test
-- [ ] Audit-log DB trigger installed; consider a separate low-privilege app DB role (see risks)
-- [ ] Pagination on audit_log and list pages confirmed
-- [ ] `workspaces.plan` (entitlement stub) column added — even if unused, retrofitting
-      entitlements after multi-framework activation ships is much harder
-- [ ] Workspace data-export path exists (CSV per module is acceptable v1)
-- [ ] Consider Postgres RLS as a backstop to app-level scoping
+### 8.4 Assessments
+Reusable questionnaire/campaign engine.
+- **Entities:** `assessment_templates` (sections/questions jsonb: types choice/scale/text/
+  evidence-upload; scoring weights), `campaigns` (template, audience: users/org_units/vendor
+  contacts-later, schedule, reminders), `responses` (per respondent, status, answers jsonb,
+  score), evidence attachments.
+- **Standalone:** maturity/self-assessments with scoring and campaign tracking.
+- **Provides:** `assessment-run` point (Compliance control self-assessments, Audit fieldwork
+  checklists, Risk control-effectiveness input); `assessment.submitted` events.
+- **Consumes:** `scope-entities` ← Catalog to target campaigns at org_units/services
+  (fallback: manual respondent lists); Tasks for follow-ups on poor scores.
 
-## 8. Future split runbook (when marketing/product deploy coupling actually hurts)
+### 8.5 Internal Audits
+- **Entities:** `audit_universe` (auditable entities — from Catalog or local fallback list),
+  `audit_plans` (annual plan, risk-based prioritization pulling risk scores when Risk module
+  present), `engagements` (scope, team, schedule, status workflow), `workpapers` (docs via
+  storage + review sign-off), `findings` (severity, criteria/condition/cause/effect,
+  recommendation, management response, agreed action + due), follow-up tracking.
+- **Standalone:** complete audit lifecycle with local auditable-entities list.
+- **Consumes:** Catalog (universe; promotion merges local universe into catalog), Risk
+  (risk-based planning input; findings can raise risks), Tasks (remediation), Assessments
+  (fieldwork checklists). All with declared fallbacks (plan without risk scores; local
+  remediation checklist).
+- **Provides:** findings feed to Management Hub; audit status widgets/reports; report
+  issuance gated through the approval primitive.
 
-Preserved so the deferred split stays a mechanical move:
-1. Create a second Vercel project on this same repo, Root Directory = the product folder
-   (either `website` stays product and marketing moves out, or restructure to `apps/*` then).
-2. GoDaddy: CNAME `app` → `cname.vercel-dns.com`; attach `app.unisentinel.com`.
-3. Marketing keeps permanent redirects `/app/:path*` and `/login|/register` → `https://app.unisentinel.com/...`.
-4. Product app gets its own `metadataBase`, `robots.ts` = disallow all, no sitemap.
-5. Sessions are host-scoped cookies — users re-login once (keep `AUTH_SECRET` identical);
-   only widen cookie domain to `.unisentinel.com` if cross-subdomain sessions are truly needed.
-6. If restructuring to npm workspaces: single committed root lockfile (delete the root
-   `package-lock.json` line from `.gitignore`), set `outputFileTracingRoot` in both apps'
-   `next.config.ts`, `transpilePackages` for shared TS-source packages — verify every config
-   key against `node_modules/next/dist/docs` (modified Next 16).
-7. Remove `DATABASE_URL`/`AUTH_SECRET` from the marketing project's env entirely.
+### 8.6 Compliance
+Requirements → policy/control mapping (per the stated scope).
+- **Entities:** `requirement_sources` (regulations, standards, contracts, internal mandates —
+  imported libraries [NIST public domain; ISO/AICPA as codes+paraphrase] **and fully custom
+  company requirements**), `requirements` (hierarchical), `policies` (document registry:
+  metadata + file/markdown, version history, owner, review cycle, approval-gated publication —
+  v1 policy design carried over), `controls` (the company's control set), mapping tables
+  `requirement_policies`, `requirement_controls` (the common-controls model from v1: one
+  control/policy satisfies many requirements across sources), `gaps` (unmet requirements →
+  actions).
+- **Standalone:** requirement libraries, policy registry, mapping matrix, gap list with local
+  action items.
+- **Consumes:** Assessments (control self-assessment campaigns feed implementation status),
+  Tasks (gap remediation), Catalog (applicability scoping: which org_units/services a
+  requirement applies to), Risk (compliance gaps raise risks).
+- **Provides:** `controls` point (Risk's mitigating controls), compliance-posture % widgets
+  and statement-of-applicability / gap reports.
 
-## 9. Risks and honest limits
+### 8.7 Management Hub
+The executive layer over everything licensed.
+- **Entities:** `objectives` (strategic objectives tree, owners, KPIs, period), links from
+  objectives to risks/initiatives (activities)/compliance postures via `entity_links`;
+  `committees` (membership), `meetings` (agenda items referencing any entity, minutes,
+  decisions, actions → Tasks), consolidated executive dashboard (cross-module widgets) and
+  board-pack report composition.
+- **Standalone:** objectives + committee/meeting management with local action items.
+- **Consumes:** read-widgets from every other module (each degrades to hidden if unlicensed);
+  Tasks for meeting actions.
 
-- **Tenancy is app-level only (no RLS):** one forgotten `eq(workspaceId)` leaks another
-  company's risk register — a materially worse breach class than CRM data. Mitigate with
-  workspace-scoped query helpers, `assertWorkspaceX` on every FK from form input, the isolation
-  smoke test, and RLS as a pre-customer backstop.
-- **Dual hand-maintained schema** (`schema.ts` + raw SQL `db-push.mjs`) across ~18 new tables:
-  drift grows superlinearly. The Phase 1 drift-check script is mandatory; consider generating
-  the SQL from drizzle-kit (already a devDependency) while keeping the idempotent-apply wrapper.
-- **Framework content licensing:** ISO 27001 text is ISO-copyrighted, SOC 2 TSC is
-  AICPA-licensed — seed codes + paraphrases only; NIST CSF is public domain. A legal problem
-  for a compliance vendor specifically.
-- **Audit-log immutability is bounded:** the app connects as the RDS master user, so the
-  block-update/delete trigger is advisory against a compromised app. Before marketing an
-  "immutable audit trail", add a separate low-privilege app DB role (no UPDATE/DELETE grant on
-  `audit_log`) or hash-chained entries.
-- **Modified Next.js 16.2.9:** APIs differ from training data (`proxy.ts` vs `middleware.ts`
-  is the known example); `npm install` + read `node_modules/next/dist/docs` at the start of
-  every phase.
-- **Stale JWT claims:** all RBAC checks follow the `requireAdmin` fresh-DB-lookup pattern,
-  never the token's role claim.
-- **User-deletion semantics:** the SET NULL deviation + actor snapshots must be applied
-  consistently or deleting one employee silently destroys compliance history.
-- **Concurrency (accepted debt):** mutations are last-write-wins; two users editing the same
-  control/policy/risk clobber each other. Cheapest later fix: an `updated_at` compare-and-set
-  guard on edit actions. Documented as deferred, not forgotten.
-- **Internal CRM exposure:** the `workspaces.kind` gate must land before the first external
-  signup.
-- **Solo-dev scope:** ~18 tables and 9 route modules; the 3-file pattern keeps each module
-  mechanical, but keep phases separate and shippable.
+## 9. Platform features
+
+### 9.1 Configurable dashboards (requirement #10)
+- **Widget registry** populated from module manifests: each widget = metadata + config schema
+  (zod → auto-generated config form: filters, scope, chart type) + a server data function +
+  a renderer (chart/stat/table/list).
+- `dashboards` (workspace, name, owner, `layout jsonb` grid) + `dashboard_widgets`
+  (widget_key, config jsonb, position). Per-user home dashboard + shared/role dashboards
+  (visible-to via RBAC). Drag-resize grid (react-grid-layout). Module landing pages ship a
+  default dashboard; Management Hub ships the executive one.
+- Widget data functions run under the **viewer's** permissions — a dashboard never leaks what
+  the viewer couldn't open directly.
+
+### 9.2 Customizable reports (requirement #11)
+- **Report types** registered by modules (risk register, treatment status, SoA, gap analysis,
+  audit report, board pack…). Each = parameter schema (period, scope, filters) + a
+  server-rendered print-CSS template.
+- `report_templates` (saved parameter sets + branding: logo, cover, header/footer from
+  settings) → run now or **schedule** (worker: generate → store → notify/email). Export: PDF
+  (headless Chromium), XLSX/CSV (data-level export per module list views).
+- Full drag-and-drop report *builder* is explicitly v2; parameterized templates cover the
+  credible 80% first.
+
+### 9.3 Integrations framework & public API (requirements #5, #6)
+- **Connector SDK** (internal interface): `{ key, category, configSchema (zod), testConnection,
+  sync(ctx) }` running in the worker on schedules; credentials encrypted at rest (§11);
+  per-connector sync logs surfaced in settings; connectors map external data into module sinks
+  (Catalog `asset-import`, Risk vulnerability findings, etc.) with dedupe keys.
+- **First connectors:** vulnerability scanning (Tenable/Nessus, Qualys — imports assets +
+  vulns; vulns can raise risks), asset sources (CSV/Excel import first — honest v1 —, then
+  Lansweeper/Intune), patch status (WSUS/SCCM export ingestion first). CSV import is itself a
+  connector, giving every customer a day-one integration path.
+- **Public REST API** `/api/v1` (OpenAPI-documented): API tokens (hashed, workspace-scoped)
+  carrying **permission scopes from the same RBAC catalog** — one authorization model for
+  humans and machines. Rate limiting; audit-logged like any actor.
+- **Webhooks:** subscriptions on domain events (from the outbox) with HMAC-signed deliveries
+  and retry.
+
+## 10. Data architecture
+
+- **One PostgreSQL schema for platform + all modules**; module tables prefixed by convention
+  (`risk_*`, `cat_*`, `task_*`…). All licensed-or-not tables exist in every install
+  (empty when unlicensed) — migrations stay uniform, promotion is in-DB, support is sane.
+- **Multi-tenancy:** cloud = shared DB, `workspace_id` on every row + composite indexes;
+  isolation enforced by the action wrapper + query helpers + the per-module isolation test.
+  Postgres **RLS as a backstop** is a hardening milestone before scaling cloud tenants.
+  On-prem = same schema, one workspace row.
+- **Migrations:** drizzle-kit generated SQL, committed, forward-only; run automatically on web
+  start (with advisory lock so multi-container cloud doesn't double-apply) or via
+  `unisentinel migrate` CLI for cautious on-prem admins. The v1 schema-drift hazard disappears
+  with `db-push.mjs` (product side) retired.
+- **Backups:** cloud — RDS PITR + restore drills; on-prem — documented `pg_dump` +
+  files-volume snapshot, automatic pre-upgrade dump in the upgrade script, and a
+  **workspace export** (JSON/CSV bundle) for data portability (also the no-lock-in answer).
+- **Search:** Postgres FTS (tsvector) per entity type feeding the global search — no
+  Elasticsearch on-prem burden.
+
+## 11. Security architecture
+
+- **AuthZ:** RBAC engine everywhere (UI hint + mandatory server check), approval primitive for
+  sensitive transitions, data-scopes schema-ready.
+- **Audit:** platform-wide immutable log (§6.4) + login/security events (SSO config change,
+  role change, license upload are all audited).
+- **Secrets:** connector/SMTP/SSO credentials encrypted at rest (AES-256-GCM) with an
+  instance master key (env/keyfile on-prem, KMS-sourced env in cloud); never returned by APIs.
+- **Transport:** TLS via Caddy (bundled option) or customer's proxy; HSTS; secure cookies.
+- **App hardening:** CSP, rate limiting (login + API), session listing/revocation, password
+  policy + lockout, 2FA, dependency audit in CI, `npm audit`/lockfile discipline.
+- **DB privilege:** app runs as a restricted role (no DDL outside migrations, no
+  UPDATE/DELETE on `audit_log`) — makes the "immutable trail" claim defensible.
+- **On-prem posture:** no outbound calls required (offline license, no telemetry by default —
+  opt-in error reporting only), documented ports, least-privilege service accounts on Windows.
+- **Pre-first-customer gate (carried from v1, updated):** isolation tests green, backups
+  restore-tested, RDS proxy + verified TLS (cloud), email verification (cloud signup), license
+  enforcement tested, workspace export works, security headers verified.
+
+## 12. Build phases & milestones
+
+Honest solo-dev sequencing: platform first (M1), then prove the **ecosystem pattern with a
+sellable module trio** (M2), then package for on-prem (M3), then widen (M4–M5). Each phase
+remains independently shippable and demoable.
+
+### M1 — Platform foundation
+- **Phase 0 — Repo & runtime skeleton:** npm-workspaces restructure (`git mv` website/src,
+  scaffold `apps/grc`); Next standalone + Docker image (web+worker); Postgres + drizzle-kit
+  migration pipeline; CI on ubuntu **and windows-latest**; `/healthz`; structured logging.
+  *Demo: fresh clone → one command → empty product shell running in Docker.*
+- **Phase 1 — Identity & tenancy:** workspaces, users, sessions (+ session management UI),
+  local auth, password policy, 2FA, setup wizard (first admin), org_units, profile capsule,
+  audit log + trigger + restricted DB role. *Demo: install, create admin, invite user, see
+  audit trail.*
+- **Phase 2 — RBAC engine + role builder:** permission catalog build step, roles/user_roles,
+  enforcement wrapper, role-builder UI, system roles. SMTP + notification framework (in-app +
+  email). *Demo: build a custom "Risk Viewer" role, watch UI/actions obey it.*
+- **Phase 3 — Module framework & licensing:** manifests + registries, app drawer shell,
+  entitlement service, signed license files + settings upload, `entity_links`, event
+  bus/outbox, action wrapper finalized, settings framework. *Demo: toggle a stub module's
+  license, watch drawer/nav/permissions appear.*
+
+### M2 — Ecosystem proof: the first sellable trio
+- **Phase 4 — Service Catalog** (inventory, relationships, generated diagrams, CSV import).
+- **Phase 5 — Tasks & Activities** (tasks, activities, kanban/calendar, My-tasks inbox).
+- **Phase 6 — Risk Management** standalone-complete (methodologies, register, heatmap,
+  treatments with local fallbacks, acceptance approvals).
+- **Phase 7 — Integration & promotion proof:** wire Risk↔Catalog (scope) and Risk↔Tasks
+  (treatment roll-up); build the **promotion wizard** for both fallbacks; this phase is the
+  template every later module copies. *Demo: buy-order simulation — start Risk standalone,
+  license Catalog, promote scope items, everything re-links.*
+- **Phase 8 — Dashboards v1 + first reports:** widget framework, grid dashboards, risk/catalog/
+  task widgets, PDF export pipeline, 3 parameterized reports. **← First sellable bundle.**
+
+### M3 — Deployment GA
+- **Phase 9 — On-prem Linux GA:** compose bundle, upgrade script + pre-upgrade dump, air-gap
+  image tarballs, install/upgrade/backup docs, versioned release process (GitHub Actions
+  release workflow).
+- **Phase 10 — Cloud GA:** multi-tenant hardening (RLS backstop, rate limits), workspace
+  provisioning flow, entitlement admin tooling, monitoring/alerting, restore drill.
+- **Phase 11 — SSO (OIDC) + API v1:** OIDC login + JIT provisioning; public REST API + tokens
+  + OpenAPI docs + webhooks.
+
+### M4 — Module build-out (each: standalone + integrations + fallbacks + promotion + widgets + reports + seeds)
+- **Phase 12 — Compliance** (requirements, policies, mappings, gaps).
+- **Phase 13 — Assessments** (templates, campaigns, scoring) + Compliance/Audit hooks.
+- **Phase 14 — Internal Audits** (universe, plans, engagements, findings, follow-up).
+- **Phase 15 — Management Hub** (objectives, committees/meetings/actions, executive dashboard).
+
+### M5 — Enterprise depth
+- **Phase 16 — Windows Server native package** (services installer, upgrade script, docs) —
+  CI has kept the code Windows-clean since Phase 0, so this phase is packaging, not porting.
+- **Phase 17 — Integration connectors:** Tenable/Qualys, asset/patch sources beyond CSV;
+  connector health UI.
+- **Phase 18 — Enterprise auth & admin:** SAML, SCIM, data-scopes enforcement, report
+  scheduling polish, per-workspace branding.
+
+## 13. Open decisions
+
+1. **Windows native vs Docker-only at launch** — plan assumes Docker path is offered first
+   and native lands in M5; if early Windows deals demand native sooner, swap Phase 16 forward.
+2. **PDF engine weight** — bundled Chromium adds ~300MB to images/installs; alternative
+   (lighter but lower fidelity) is a pure-JS PDF lib for tabular reports only. Decide at Phase 8.
+3. **Diagram editing depth** — generated + position-override diagrams (planned) vs full
+   free-form editor (big scope). Revisit after Catalog ships.
+4. **Billing automation for cloud** (Stripe etc.) — out of scope until M3; manual entitlements
+   suffice for design partners.
+5. **Seat counting semantics** per module (any-permission-holder vs named assignment) — a
+   pricing decision that should land before the first license file is issued (M2/M3 boundary).
+6. **Mobile/responsive depth** — console is desktop-first; decide how far tables/kanban must
+   degrade on tablet before M2 demos.
+
+## 14. Risks
+
+- **Scope vs one developer.** This is a multi-year platform. Mitigations baked in: platform
+  primitives are built once and reused by every module (RBAC, approvals, links, events,
+  widgets, reports, action wrapper); modules are mechanical after Phase 7's template; the
+  M2 trio is sellable long before the full suite exists. Resist parallel half-built modules.
+- **The integration matrix grows quadratically.** Discipline: modules integrate only through
+  named integration points, events, and `entity_links` — never direct imports (lint-enforced).
+  Every point ships with fallback + promotion or it doesn't ship.
+- **On-prem supportability.** Every customer environment differs. Mitigations: Docker-first,
+  minimal moving parts (Postgres + Node only), `/healthz`+`/readyz`, structured logs, a
+  `support-bundle` command (versions, migration state, redacted config), restore-tested
+  upgrade script.
+- **Windows path erosion.** Without CI enforcement it *will* break; `windows-latest` build+test
+  from Phase 0 is non-negotiable.
+- **RBAC performance.** Per-request fresh permission loads across many checks: memoize per
+  request, single indexed query for a user's permission set; benchmark in Phase 2, before
+  every module compounds the cost.
+- **Licensed-content legal risk** (unchanged from v1): ISO/AICPA text is copyrighted — ship
+  codes + paraphrases; NIST is public domain. A compliance vendor cannot get this wrong.
+- **Tenant isolation** (cloud): app-level scoping until the RLS backstop lands (Phase 10);
+  isolation tests are part of every module's definition-of-done from day one.
+- **Modified-Next dependency:** the product pins Next and upgrades deliberately; the
+  `AGENTS.md` read-the-docs-first rule applies to `apps/grc` as it did to `website/`.
+- **Promotion-wizard correctness:** promotion rewrites live references — always dry-run
+  preview, idempotent, keeps source rows marked-migrated for audit, covered by tests with
+  messy duplicate data.
