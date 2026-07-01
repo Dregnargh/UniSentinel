@@ -187,7 +187,9 @@
 }
 @media (max-width: 920px) {
   .nav__links { display: none; }
-  .nav__signin { display: none; }
+  /* Keep "Sign in" reachable on mobile; hide the redundant nav demo button to make room. */
+  .nav__actions .btn { display: none; }
+  .nav__signin { display: inline-flex; align-items: center; }
   .nav__burger { display: inline-flex; }
   .nav--open { background: rgba(5, 15, 30, 0.96); backdrop-filter: blur(16px); }
   .nav--open.nav--solid { background: rgba(5, 15, 30, 0.96); }
