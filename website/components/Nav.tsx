@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Logo from "./Logo";
 
 const LINKS = [
@@ -37,7 +38,7 @@ export default function Nav() {
         </nav>
 
         <div className="nav__actions">
-          <a href="#" className="nav__signin">Sign in</a>
+          <Link href="/login" className="nav__signin">Sign in</Link>
           <a href="#cta" className="btn btn-primary btn-sm">Book a demo</a>
         </div>
 
