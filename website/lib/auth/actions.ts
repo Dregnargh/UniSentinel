@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
-import { getUserByEmail, createUser } from "./user";
+import { getUserByEmail, createUser, createWorkspace } from "./user";
 import { hashPassword, verifyPassword } from "./password";
 import { createSession, destroySession } from "./session";
 
@@ -30,7 +30,10 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
     return { error: "Invalid email or password." };
   }
-  await createSession(user);
+  if (!user.active) {
+    return { error: "This account has been deactivated. Contact your workspace admin." };
+  }
+  await createSession({ ...user, workspaceId: user.workspaceId });
   redirect("/app");
 }
 
@@ -47,14 +50,16 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     return { error: "An account with that email already exists." };
   }
   const passwordHash = await hashPassword(parsed.data.password);
-  // First-party signups become admins of their own workspace in this demo.
+  // First-party signups create a new workspace and become its admin.
+  const workspace = await createWorkspace(`${parsed.data.name}'s Workspace`);
   const user = await createUser({
+    workspaceId: workspace.id,
     name: parsed.data.name,
     email: parsed.data.email,
     passwordHash,
     role: "admin",
   });
-  await createSession(user);
+  await createSession({ ...user, workspaceId: user.workspaceId });
   redirect("/app");
 }
 

@@ -22,19 +22,19 @@ await client.connect();
 
 const adminEmail = "admin@unisentinel.com";
 
-// Resolve the owning user. The CRM is workspace-scoped, so it needs an owner.
-const owner = await client.query("SELECT id FROM users WHERE email = $1", [adminEmail]);
-if (!owner.rows.length) {
-  console.error(`✗ no user ${adminEmail}. Run \`npm run db:seed\` first, then retry.`);
+// Resolve the admin's workspace. CRM data is scoped to the workspace.
+const owner = await client.query("SELECT workspace_id FROM users WHERE email = $1", [adminEmail]);
+if (!owner.rows.length || !owner.rows[0].workspace_id) {
+  console.error(`✗ no workspace for ${adminEmail}. Run \`npm run db:seed\` first, then retry.`);
   await client.end();
   process.exit(1);
 }
-const ownerId = owner.rows[0].id;
+const workspaceId = owner.rows[0].workspace_id;
 
 // Skip if this workspace already has CRM data.
 const existing = await client.query(
-  "SELECT id FROM companies WHERE owner_id = $1 LIMIT 1",
-  [ownerId],
+  "SELECT id FROM companies WHERE workspace_id = $1 LIMIT 1",
+  [workspaceId],
 );
 if (existing.rows.length) {
   console.log(`✓ CRM data already seeded for ${adminEmail}`);
@@ -117,33 +117,33 @@ try {
 
   for (const c of companies) {
     await client.query(
-      `INSERT INTO companies (id, owner_id, name, industry, size, location, risk_tier, status, owner, frameworks, arr, created_at)
+      `INSERT INTO companies (id, workspace_id, name, industry, size, location, risk_tier, status, owner, frameworks, arr, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [companyUuid.get(c.id), ownerId, c.name, c.industry, c.size, c.location, c.riskTier, c.status, c.owner, JSON.stringify(c.frameworks), c.arr, now],
+      [companyUuid.get(c.id), workspaceId, c.name, c.industry, c.size, c.location, c.riskTier, c.status, c.owner, JSON.stringify(c.frameworks), c.arr, now],
     );
   }
 
   for (const p of contacts) {
     await client.query(
-      `INSERT INTO contacts (id, owner_id, company_id, name, title, email, phone, status, last_touch, created_at)
+      `INSERT INTO contacts (id, workspace_id, company_id, name, title, email, phone, status, last_touch, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [randomUUID(), ownerId, companyUuid.get(p.companyId), p.name, p.title, p.email, p.phone, p.status, p.lastTouch, now],
+      [randomUUID(), workspaceId, companyUuid.get(p.companyId), p.name, p.title, p.email, p.phone, p.status, p.lastTouch, now],
     );
   }
 
   for (const d of deals) {
     await client.query(
-      `INSERT INTO deals (id, owner_id, company_id, name, value, stage, owner, probability, close_date, created_at)
+      `INSERT INTO deals (id, workspace_id, company_id, name, value, stage, owner, probability, close_date, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [randomUUID(), ownerId, companyUuid.get(d.companyId), d.name, d.value, d.stage, d.owner, d.probability, d.closeDate, now],
+      [randomUUID(), workspaceId, companyUuid.get(d.companyId), d.name, d.value, d.stage, d.owner, d.probability, d.closeDate, now],
     );
   }
 
   for (const a of activities) {
     await client.query(
-      `INSERT INTO activities (id, owner_id, company_id, type, title, contact, "when", done, created_at)
+      `INSERT INTO activities (id, workspace_id, company_id, type, title, contact, "when", done, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [randomUUID(), ownerId, companyUuid.get(a.companyId), a.type, a.title, a.contact, a.when, a.done, now],
+      [randomUUID(), workspaceId, companyUuid.get(a.companyId), a.type, a.title, a.contact, a.when, a.done, now],
     );
   }
 

@@ -5,22 +5,22 @@ import {
   type Company, type Contact, type Deal, type Activity,
 } from "@/lib/db/schema";
 
-// All reads are scoped to the owning user so a workspace only sees its own data.
+// All reads are scoped to the workspace so members share the same data.
 
-export function listCompanies(ownerId: string): Promise<Company[]> {
-  return db.select().from(companies).where(eq(companies.ownerId, ownerId)).orderBy(asc(companies.name));
+export function listCompanies(workspaceId: string): Promise<Company[]> {
+  return db.select().from(companies).where(eq(companies.workspaceId, workspaceId)).orderBy(asc(companies.name));
 }
 
-export function listContacts(ownerId: string): Promise<Contact[]> {
-  return db.select().from(contacts).where(eq(contacts.ownerId, ownerId)).orderBy(asc(contacts.name));
+export function listContacts(workspaceId: string): Promise<Contact[]> {
+  return db.select().from(contacts).where(eq(contacts.workspaceId, workspaceId)).orderBy(asc(contacts.name));
 }
 
-export function listDeals(ownerId: string): Promise<Deal[]> {
-  return db.select().from(deals).where(eq(deals.ownerId, ownerId)).orderBy(desc(deals.value));
+export function listDeals(workspaceId: string): Promise<Deal[]> {
+  return db.select().from(deals).where(eq(deals.workspaceId, workspaceId)).orderBy(desc(deals.value));
 }
 
-export function listActivities(ownerId: string): Promise<Activity[]> {
-  return db.select().from(activities).where(eq(activities.ownerId, ownerId)).orderBy(desc(activities.createdAt));
+export function listActivities(workspaceId: string): Promise<Activity[]> {
+  return db.select().from(activities).where(eq(activities.workspaceId, workspaceId)).orderBy(desc(activities.createdAt));
 }
 
 /** id -> name lookup for resolving companyId references in the UI. */
@@ -39,12 +39,12 @@ export interface DashboardData {
 }
 
 /** Everything the dashboard needs, fetched in parallel and reduced to metrics. */
-export async function getDashboardData(ownerId: string): Promise<DashboardData> {
+export async function getDashboardData(workspaceId: string): Promise<DashboardData> {
   const [companyRows, contactRows, dealRows, activityRows] = await Promise.all([
-    listCompanies(ownerId),
-    listContacts(ownerId),
-    listDeals(ownerId),
-    listActivities(ownerId),
+    listCompanies(workspaceId),
+    listContacts(workspaceId),
+    listDeals(workspaceId),
+    listActivities(workspaceId),
   ]);
 
   const openDeals = dealRows.filter((d) => d.stage !== "Closed Won");

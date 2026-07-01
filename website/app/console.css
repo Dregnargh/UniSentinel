@@ -321,3 +321,12 @@
 .row-btn:hover { border-color: var(--n-300); color: var(--heading); }
 .row-btn--danger:hover { border-color: var(--danger-600, #c02626); color: var(--danger-600, #c02626); }
 .row-btn[disabled] { opacity: 0.5; cursor: default; }
+
+/* Compact inline select (e.g. role picker in the users table) */
+.row-select {
+  padding: 6px 10px; font-size: 13px; font-family: var(--font-body);
+  color: var(--text); background: var(--white);
+  border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+}
+.row-select:focus { outline: none; border-color: var(--teal-400); box-shadow: 0 0 0 3px rgba(47, 149, 184, 0.18); }
+.row-select[disabled] { opacity: 0.6; cursor: default; }

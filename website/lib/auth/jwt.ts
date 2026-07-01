@@ -19,6 +19,8 @@ export interface SessionUser extends JWTPayload {
   email: string;
   name: string;
   role: string;
+  /** Workspace the user belongs to (may be absent on tokens issued before workspaces). */
+  wsid?: string;
 }
 
 export async function signSession(u: {
@@ -26,8 +28,9 @@ export async function signSession(u: {
   email: string;
   name: string;
   role: string;
+  workspaceId: string;
 }): Promise<string> {
-  return new SignJWT({ email: u.email, name: u.name, role: u.role })
+  return new SignJWT({ email: u.email, name: u.name, role: u.role, wsid: u.workspaceId })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(u.id)
     .setIssuedAt()

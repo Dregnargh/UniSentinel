@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { companies, contacts, deals, activities } from "@/lib/db/schema";
-import { requireSession } from "@/lib/auth/session";
+import { requireWorkspace } from "@/lib/auth/session";
 
 export type ActionState = { ok?: boolean; error?: string };
 
@@ -17,12 +17,12 @@ function revalidateCrm(page: string) {
   revalidatePath("/app");
 }
 
-/** Ensure a companyId belongs to the current owner before referencing it. */
-async function assertOwnedCompany(companyId: string, ownerId: string) {
+/** Ensure a companyId belongs to the current workspace before referencing it. */
+async function assertWorkspaceCompany(companyId: string, workspaceId: string) {
   const rows = await db
     .select({ id: companies.id })
     .from(companies)
-    .where(and(eq(companies.id, companyId), eq(companies.ownerId, ownerId)))
+    .where(and(eq(companies.id, companyId), eq(companies.workspaceId, workspaceId)))
     .limit(1);
   if (!rows.length) throw new Error("Company not found");
 }
@@ -42,13 +42,13 @@ const companySchema = z.object({
 });
 
 export async function createCompany(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   const parsed = companySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;
   await db.insert(companies).values({
     id: crypto.randomUUID(),
-    ownerId,
+    workspaceId,
     name: d.name,
     industry: d.industry,
     size: d.size,
@@ -65,8 +65,8 @@ export async function createCompany(_prev: ActionState, formData: FormData): Pro
 }
 
 export async function deleteCompany(id: string): Promise<void> {
-  const { sub: ownerId } = await requireSession();
-  await db.delete(companies).where(and(eq(companies.id, id), eq(companies.ownerId, ownerId)));
+  const { workspaceId } = await requireWorkspace();
+  await db.delete(companies).where(and(eq(companies.id, id), eq(companies.workspaceId, workspaceId)));
   revalidateCrm("/app/companies");
 }
 
@@ -83,14 +83,14 @@ const contactSchema = z.object({
 });
 
 export async function createContact(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   const parsed = contactSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;
-  await assertOwnedCompany(d.companyId, ownerId);
+  await assertWorkspaceCompany(d.companyId, workspaceId);
   await db.insert(contacts).values({
     id: crypto.randomUUID(),
-    ownerId,
+    workspaceId,
     companyId: d.companyId,
     name: d.name,
     title: d.title,
@@ -105,8 +105,8 @@ export async function createContact(_prev: ActionState, formData: FormData): Pro
 }
 
 export async function deleteContact(id: string): Promise<void> {
-  const { sub: ownerId } = await requireSession();
-  await db.delete(contacts).where(and(eq(contacts.id, id), eq(contacts.ownerId, ownerId)));
+  const { workspaceId } = await requireWorkspace();
+  await db.delete(contacts).where(and(eq(contacts.id, id), eq(contacts.workspaceId, workspaceId)));
   revalidateCrm("/app/contacts");
 }
 
@@ -123,14 +123,14 @@ const dealSchema = z.object({
 });
 
 export async function createDeal(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   const parsed = dealSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;
-  await assertOwnedCompany(d.companyId, ownerId);
+  await assertWorkspaceCompany(d.companyId, workspaceId);
   await db.insert(deals).values({
     id: crypto.randomUUID(),
-    ownerId,
+    workspaceId,
     companyId: d.companyId,
     name: d.name,
     value: d.value,
@@ -145,8 +145,8 @@ export async function createDeal(_prev: ActionState, formData: FormData): Promis
 }
 
 export async function deleteDeal(id: string): Promise<void> {
-  const { sub: ownerId } = await requireSession();
-  await db.delete(deals).where(and(eq(deals.id, id), eq(deals.ownerId, ownerId)));
+  const { workspaceId } = await requireWorkspace();
+  await db.delete(deals).where(and(eq(deals.id, id), eq(deals.workspaceId, workspaceId)));
   revalidateCrm("/app/deals");
 }
 
@@ -161,14 +161,14 @@ const activitySchema = z.object({
 });
 
 export async function createActivity(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   const parsed = activitySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;
-  await assertOwnedCompany(d.companyId, ownerId);
+  await assertWorkspaceCompany(d.companyId, workspaceId);
   await db.insert(activities).values({
     id: crypto.randomUUID(),
-    ownerId,
+    workspaceId,
     companyId: d.companyId,
     type: d.type,
     title: d.title,
@@ -182,16 +182,16 @@ export async function createActivity(_prev: ActionState, formData: FormData): Pr
 }
 
 export async function toggleActivityDone(id: string, done: boolean): Promise<void> {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   await db
     .update(activities)
     .set({ done })
-    .where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)));
+    .where(and(eq(activities.id, id), eq(activities.workspaceId, workspaceId)));
   revalidateCrm("/app/activities");
 }
 
 export async function deleteActivity(id: string): Promise<void> {
-  const { sub: ownerId } = await requireSession();
-  await db.delete(activities).where(and(eq(activities.id, id), eq(activities.ownerId, ownerId)));
+  const { workspaceId } = await requireWorkspace();
+  await db.delete(activities).where(and(eq(activities.id, id), eq(activities.workspaceId, workspaceId)));
   revalidateCrm("/app/activities");
 }
