@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/auth/session";
+import { requireWorkspace } from "@/lib/auth/session";
 import { listActivities, listCompanies, companyNameMap } from "@/lib/crm/queries";
 import ActivitiesClient from "./ActivitiesClient";
 import NewActivityButton from "./NewActivityButton";
@@ -7,10 +7,10 @@ import NewActivityButton from "./NewActivityButton";
 export const metadata: Metadata = { title: "Activities" };
 
 export default async function ActivitiesPage() {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   const [activities, companies] = await Promise.all([
-    listActivities(ownerId),
-    listCompanies(ownerId),
+    listActivities(workspaceId),
+    listCompanies(workspaceId),
   ]);
   const companyOptions = companies.map((c) => ({ id: c.id, name: c.name }));
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/auth/session";
+import { requireWorkspace } from "@/lib/auth/session";
 import { listCompanies } from "@/lib/crm/queries";
 import CompaniesClient from "./CompaniesClient";
 import NewCompanyButton from "./NewCompanyButton";
@@ -7,8 +7,8 @@ import NewCompanyButton from "./NewCompanyButton";
 export const metadata: Metadata = { title: "Companies" };
 
 export default async function CompaniesPage() {
-  const { sub: ownerId } = await requireSession();
-  const companies = await listCompanies(ownerId);
+  const { workspaceId } = await requireWorkspace();
+  const companies = await listCompanies(workspaceId);
 
   return (
     <>

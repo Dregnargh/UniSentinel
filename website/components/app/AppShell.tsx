@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import { logout } from "@/lib/auth/actions";
-import { Grid, People, Vendor, Pipeline, Pulse, Search, Bell } from "@/components/icons";
+import { Grid, People, Vendor, Pipeline, Pulse, Search, Bell, Settings } from "@/components/icons";
 import { initials } from "@/lib/crm/format";
 
 const NAV = [
@@ -15,6 +15,9 @@ const NAV = [
   { href: "/app/deals", label: "Deals", Icon: Pipeline },
   { href: "/app/activities", label: "Activities", Icon: Pulse },
 ];
+
+// Admin-only entries appended to the nav.
+const ADMIN_NAV = [{ href: "/app/settings/users", label: "Users", Icon: Settings }];
 
 export default function AppShell({
   user,
@@ -27,6 +30,7 @@ export default function AppShell({
   const [navOpen, setNavOpen] = useState(false);
   const isActive = (href: string) =>
     href === "/app" ? pathname === "/app" : pathname.startsWith(href);
+  const navItems = user.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
 
   return (
     <div className={`ap ${navOpen ? "ap--nav-open" : ""}`}>
@@ -36,7 +40,7 @@ export default function AppShell({
         </div>
         <div className="ap__nav-label">Workspace</div>
         <nav className="ap__nav">
-          {NAV.map(({ href, label, Icon }) => (
+          {navItems.map(({ href, label, Icon }) => (
             <Link
               key={href}
               href={href}

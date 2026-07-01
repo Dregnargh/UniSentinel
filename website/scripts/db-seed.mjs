@@ -1,4 +1,4 @@
-// Seeds a demo admin so you can log in immediately. Idempotent.
+// Seeds a demo workspace + admin so you can log in immediately. Idempotent.
 import pg from "pg";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
@@ -29,11 +29,19 @@ if (existing.rows.length) {
   process.exit(0);
 }
 
+const now = new Date();
+const workspaceId = randomUUID();
 const passwordHash = await bcrypt.hash(password, 10);
+
 await client.query(
-  "INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
-  [randomUUID(), "Ada Auditor", email, passwordHash, "admin", new Date()],
+  "INSERT INTO workspaces (id, name, created_at) VALUES ($1, $2, $3)",
+  [workspaceId, "UniSentinel", now],
 );
-console.log(`✓ seeded demo admin → ${email} / ${password}`);
+await client.query(
+  `INSERT INTO users (id, workspace_id, name, email, password_hash, role, active, created_at)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+  [randomUUID(), workspaceId, "Ada Auditor", email, passwordHash, "admin", true, now],
+);
+console.log(`✓ seeded workspace + demo admin → ${email} / ${password}`);
 await client.end();
 process.exit(0);

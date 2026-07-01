@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Dollar, Pipeline, People, Pulse, Plus, Phone, Mail, Calendar, Policy, Check } from "@/components/icons";
 import { money, stageTone, STAGES, type Stage } from "@/lib/crm/format";
 import type { Activity } from "@/lib/db/schema";
-import { requireSession } from "@/lib/auth/session";
+import { requireWorkspace } from "@/lib/auth/session";
 import { getDashboardData, companyNameMap } from "@/lib/crm/queries";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -11,9 +11,9 @@ export const metadata: Metadata = { title: "Dashboard" };
 const actIcon = { call: Phone, email: Mail, meeting: Calendar, note: Policy, task: Check } as const;
 
 export default async function DashboardPage() {
-  const { sub: ownerId } = await requireSession();
+  const { workspaceId } = await requireWorkspace();
   const { companies, contacts, deals, activities, pipelineValue, weightedPipeline, wonValue } =
-    await getDashboardData(ownerId);
+    await getDashboardData(workspaceId);
   const companyName = (id: string) => companyNameMap(companies)[id] ?? "—";
 
   const activeAccounts = companies.filter((c) => c.status === "Active" || c.status === "Customer").length;
