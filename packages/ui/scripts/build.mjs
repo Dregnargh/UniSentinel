@@ -5,6 +5,7 @@
 //  - dist/tokens.css    :root design tokens                                 [tokensGlob]
 import * as esbuild from 'esbuild';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { readdirSync, existsSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 
@@ -59,7 +60,11 @@ await esbuild.build({
 
 // 3. Declarations ------------------------------------------------------------
 console.log('[build] emitting declarations (tsc)');
-const tsc = spawnSync('node', ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.build.json'], {
+// Resolve tsc through require so the script works under npm-workspace hoisting
+// (typescript lives in the repo-root node_modules, not the package's own).
+const require = createRequire(import.meta.url);
+const tscBin = path.join(path.dirname(require.resolve('typescript/package.json')), 'bin', 'tsc');
+const tsc = spawnSync('node', [tscBin, '-p', 'tsconfig.build.json'], {
   stdio: 'inherit',
 });
 if (tsc.status !== 0) {

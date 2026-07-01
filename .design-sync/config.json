@@ -3,8 +3,8 @@
   "globalName": "UniSentinel",
   "projectId": "2735cec4-8229-4940-b2e4-cf5848ff49a9",
   "shape": "package",
-  "buildCmd": "npm run build",
-  "cssEntry": "./dist/styles.css",
+  "buildCmd": "npm run build -w @unisentinel/ui",
+  "cssEntry": "./packages/ui/dist/styles.css",
   "readmeHeader": ".design-sync/conventions.md",
   "overrides": {
     "Card": { "cardMode": "column" },

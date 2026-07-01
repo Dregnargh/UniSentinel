@@ -14,5 +14,6 @@ ds-bundle/
 .brandtmp/
 .wf/
 
-# keep the website build from inferring the repo root as its workspace
-/package-lock.json
+# npm workspaces: the single lockfile lives at the repo root and IS committed.
+# (Both Next apps pin outputFileTracingRoot to the repo root so tracing stays correct.)
+.next/
