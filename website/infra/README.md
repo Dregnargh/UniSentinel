@@ -56,6 +56,13 @@ Then set `DATABASE_URL`, `DATABASE_CA_CERT`, and `AUTH_SECRET` in Vercel and red
 terraform destroy
 ```
 
+## AWS Free plan note
+
+If your account is on the AWS **Free plan**, `terraform apply` fails the RDS instance with
+`FreeTierRestrictionError: ... backup retention period exceeds the maximum`. Set
+`backup_retention_days = 0` in `terraform.tfvars` and re-apply. Raise it back to `7` after you
+upgrade to a paid plan (backups matter for production data).
+
 ## Production hardening (edit terraform.tfvars)
 
 - `deletion_protection = true`, `skip_final_snapshot = false`

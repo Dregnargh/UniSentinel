@@ -12,7 +12,8 @@ allowed_cidrs = ["203.0.113.10/32"]
 # allocated_storage     = 20
 # engine_version        = "16"
 # publicly_accessible   = true
-# backup_retention_days = 7
+# backup_retention_days = 7   # AWS Free plan caps this — set 0 until you upgrade,
+#                             # then raise to 7 for production (backups on).
 # multi_az              = false
 # deletion_protection   = false   # set true for production
 # skip_final_snapshot   = true    # set false for production
