@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 import { logout } from "@/lib/auth/actions";
 import { Grid, People, Vendor, Pipeline, Pulse, Search, Bell } from "@/components/icons";
-import { initials } from "@/lib/crm/data";
+import { initials } from "@/lib/crm/format";
 
 const NAV = [
   { href: "/app", label: "Dashboard", Icon: Grid },
