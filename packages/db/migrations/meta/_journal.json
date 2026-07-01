@@ -8,6 +8,20 @@
       "when": 1782944010951,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782945511605,
+      "tag": "0001_identity-tenancy-audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782945512760,
+      "tag": "0002_audit-log-immutable",
+      "breakpoints": true
     }
   ]
 }
