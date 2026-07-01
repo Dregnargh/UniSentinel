@@ -26,6 +26,9 @@ await esbuild.build({
   target: ['es2020'],
   external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'],
   logLevel: 'warning',
+  // The components are interactive (hooks/context): mark the whole bundle as
+  // client code so React Server Components frameworks draw the boundary here.
+  banner: { js: '"use client";' },
 });
 
 // 2. CSS ---------------------------------------------------------------------

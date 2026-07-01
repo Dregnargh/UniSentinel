@@ -1,0 +1,11 @@
+/* App-level base on top of the @unisentinel/ui tokens. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--us-font-sans);
+  color: var(--us-color-text);
+  background: var(--us-color-bg-subtle);
+}
