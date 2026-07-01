@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Dollar, Pipeline, People, Pulse, Plus, Phone, Mail, Calendar, Policy, Check } from "@/components/icons";
-import {
-  deals, activities, contacts, companies, companyName, initials, money,
-  pipelineValue, weightedPipeline, wonValue, openDeals, STAGES, type Stage, type Activity,
-} from "@/lib/crm/data";
+import { money, stageTone, STAGES, type Stage } from "@/lib/crm/format";
+import type { Activity } from "@/lib/db/schema";
+import { requireSession } from "@/lib/auth/session";
+import { getDashboardData, companyNameMap } from "@/lib/crm/queries";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-const stageTone: Record<Stage, string> = {
-  Lead: "neutral", Qualified: "info", Proposal: "brand", Negotiation: "warning", "Closed Won": "success",
-};
 const actIcon = { call: Phone, email: Mail, meeting: Calendar, note: Policy, task: Check } as const;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { sub: ownerId } = await requireSession();
+  const { companies, contacts, deals, activities, pipelineValue, weightedPipeline, wonValue } =
+    await getDashboardData(ownerId);
+  const companyName = (id: string) => companyNameMap(companies)[id] ?? "—";
+
   const activeAccounts = companies.filter((c) => c.status === "Active" || c.status === "Customer").length;
+  const openDeals = deals.filter((d) => d.stage !== "Closed Won");
   const recent = [...openDeals].sort((a, b) => b.value - a.value).slice(0, 6);
   const byStage = STAGES.map((s) => {
     const ds = deals.filter((d) => d.stage === s);
@@ -75,7 +78,7 @@ export default function DashboardPage() {
           <div className="card__body" style={{ paddingTop: 4, paddingBottom: 4 }}>
             <div className="feed">
               {activities.slice(0, 6).map((a: Activity) => {
-                const Icon = actIcon[a.type];
+                const Icon = actIcon[a.type as keyof typeof actIcon] ?? Policy;
                 return (
                   <div className="feed__item" key={a.id}>
                     <span className="feed__icon"><Icon size={17} /></span>

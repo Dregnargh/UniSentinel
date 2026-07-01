@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
@@ -27,6 +28,13 @@ export async function getSession(): Promise<SessionUser | null> {
   const c = (await cookies()).get(SESSION_COOKIE);
   if (!c?.value) return null;
   return verifySession(c.value);
+}
+
+/** Session or bust — redirects to /login when unauthenticated. Use in /app pages. */
+export async function requireSession(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  return session;
 }
 
 export async function destroySession(): Promise<void> {
