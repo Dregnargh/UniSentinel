@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Plus } from "@/components/icons";
 import { requireSession } from "@/lib/auth/session";
 import { listActivities, listCompanies, companyNameMap } from "@/lib/crm/queries";
 import ActivitiesClient from "./ActivitiesClient";
+import NewActivityButton from "./NewActivityButton";
 
 export const metadata: Metadata = { title: "Activities" };
 
@@ -12,6 +12,7 @@ export default async function ActivitiesPage() {
     listActivities(ownerId),
     listCompanies(ownerId),
   ]);
+  const companyOptions = companies.map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <>
@@ -21,7 +22,7 @@ export default async function ActivitiesPage() {
           <p className="ap__page-sub">Calls, emails, meetings and tasks.</p>
         </div>
         <div className="ap__page-actions">
-          <button className="btn btn-dark btn-sm"><Plus size={16} /> Log activity</button>
+          <NewActivityButton companyOptions={companyOptions} />
         </div>
       </div>
 

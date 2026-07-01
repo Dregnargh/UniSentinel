@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
-import { Plus } from "@/components/icons";
 import { initials, money, stageTone, STAGES } from "@/lib/crm/format";
+import DeleteButton from "@/components/app/DeleteButton";
+import { deleteDeal } from "@/lib/crm/actions";
+import NewDealButton from "./NewDealButton";
 import type { Deal } from "@/lib/db/schema";
 
 export default function DealsClient({
@@ -14,6 +16,10 @@ export default function DealsClient({
 }) {
   const [owner, setOwner] = React.useState<string>("All");
   const companyName = (id: string) => companyNames[id] ?? "—";
+  const companyOptions = React.useMemo(
+    () => Object.entries(companyNames).map(([id, name]) => ({ id, name })),
+    [companyNames],
+  );
 
   const owners = React.useMemo(
     () => ["All", ...Array.from(new Set(deals.map((d) => d.owner)))],
@@ -60,7 +66,7 @@ export default function DealsClient({
               </button>
             ))}
           </div>
-          <button className="btn btn-dark btn-sm"><Plus size={16} /> New deal</button>
+          <NewDealButton companyOptions={companyOptions} />
         </div>
       </div>
 
@@ -95,6 +101,9 @@ export default function DealsClient({
                         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.closeDate}</span>
                       </span>
                       <span className="deal__val">{money(d.value)}</span>
+                    </div>
+                    <div style={{ marginTop: 10, textAlign: "right" }}>
+                      <DeleteButton action={deleteDeal} id={d.id} confirm={`Delete deal "${d.name}"?`} />
                     </div>
                   </div>
                 ))

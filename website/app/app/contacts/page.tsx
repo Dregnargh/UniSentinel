@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Plus } from "@/components/icons";
 import { requireSession } from "@/lib/auth/session";
 import { listCompanies, listContacts, companyNameMap } from "@/lib/crm/queries";
 import ContactsClient from "./ContactsClient";
+import NewContactButton from "./NewContactButton";
 
 export const metadata: Metadata = { title: "Contacts" };
 
@@ -12,6 +12,7 @@ export default async function ContactsPage() {
     listContacts(ownerId),
     listCompanies(ownerId),
   ]);
+  const companyOptions = companies.map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <>
@@ -21,7 +22,7 @@ export default async function ContactsPage() {
           <p className="ap__page-sub">Everyone across your accounts.</p>
         </div>
         <div className="ap__page-actions">
-          <button className="btn btn-dark btn-sm"><Plus size={16} /> Add contact</button>
+          <NewContactButton companyOptions={companyOptions} />
         </div>
       </div>
 

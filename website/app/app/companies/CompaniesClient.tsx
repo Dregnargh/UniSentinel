@@ -3,6 +3,8 @@
 import React from "react";
 import { Search } from "@/components/icons";
 import { initials, money, statusTone, riskTone } from "@/lib/crm/format";
+import DeleteButton from "@/components/app/DeleteButton";
+import { deleteCompany } from "@/lib/crm/actions";
 import type { Company } from "@/lib/db/schema";
 
 type StatusFilter = "All" | Company["status"];
@@ -66,6 +68,7 @@ export default function CompaniesClient({ companies }: { companies: Company[] })
                 <th>Status</th>
                 <th>Owner</th>
                 <th style={{ textAlign: "right" }}>ARR</th>
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -103,11 +106,14 @@ export default function CompaniesClient({ companies }: { companies: Company[] })
                   <td style={{ textAlign: "right" }} className="cell-strong">
                     {co.arr > 0 ? money(co.arr) : "—"}
                   </td>
+                  <td style={{ textAlign: "right" }}>
+                    <DeleteButton action={deleteCompany} id={co.id} confirm={`Delete ${co.name}? This also removes its contacts, deals and activities.`} />
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "40px 16px", color: "var(--text-muted)" }}>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "40px 16px", color: "var(--text-muted)" }}>
                     No companies match your search.
                   </td>
                 </tr>
