@@ -531,3 +531,34 @@ a.shell__drawer-tile:hover {
   color: var(--us-color-primary);
   flex-shrink: 0;
 }
+
+/* ---- Segmented filter ------------------------------------------------------- */
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--us-color-border);
+  border-radius: var(--us-radius-md);
+  overflow: hidden;
+  background: #fff;
+}
+
+.seg button {
+  border: 0;
+  background: transparent;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: var(--us-text-sm);
+  color: var(--us-color-text);
+  cursor: pointer;
+  border-right: 1px solid var(--us-color-border);
+}
+
+.seg button:last-child {
+  border-right: 0;
+}
+
+.seg button[data-active] {
+  background: color-mix(in srgb, var(--us-color-accent) 14%, transparent);
+  color: var(--us-color-primary);
+  font-weight: var(--us-weight-medium);
+}

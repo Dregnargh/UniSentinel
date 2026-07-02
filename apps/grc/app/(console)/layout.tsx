@@ -52,6 +52,14 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           expired: e?.status === "expired",
         };
       })}
+      moduleNavs={MODULES.filter((m) => entitlements.get(m.key)?.status === "active").map((m) => ({
+        key: m.key,
+        name: m.name,
+        items: (m.navigation ?? [{ path: "", label: "Overview" }]).map((n) => ({
+          href: `/m/${m.key}${n.path}`,
+          label: n.label,
+        })),
+      }))}
       hasLogo={branding !== null}
     >
       {children}

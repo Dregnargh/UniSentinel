@@ -43,6 +43,13 @@
       "when": 1782974024075,
       "tag": "0005_module-framework",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782975176013,
+      "tag": "0006_service-catalog",
+      "breakpoints": true
     }
   ]
 }

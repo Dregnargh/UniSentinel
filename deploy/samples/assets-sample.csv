@@ -1,0 +1,5 @@
+name,type,description,location,classification,attr:ip,attr:vendor
+edge-firewall,hardware,Perimeter firewall,HQ rack 2,restricted,10.0.0.1,Fortinet
+crm-app,software,Customer relationship management,cloud eu-west,confidential,,Salesforce
+hr-records,data,Employee master data,HQ file server,restricted,,
+core-db-01,software,Primary PostgreSQL cluster,eu-west-1,confidential,10.0.2.11,PostgreSQL

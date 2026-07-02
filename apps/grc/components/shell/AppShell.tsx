@@ -16,6 +16,12 @@ export interface ShellUser {
   roleNames: string[];
 }
 
+export interface ModuleNav {
+  key: string;
+  name: string;
+  items: { href: string; label: string }[];
+}
+
 export interface ShellNavFlags {
   users: boolean;
   roles: boolean;
@@ -29,6 +35,7 @@ export function AppShell({
   nav,
   inbox,
   modules,
+  moduleNavs,
   hasLogo,
   children,
 }: {
@@ -36,6 +43,7 @@ export function AppShell({
   nav: ShellNavFlags;
   inbox: { items: InboxItem[]; unread: number };
   modules: DrawerModule[];
+  moduleNavs: ModuleNav[];
   hasLogo: boolean;
   children: React.ReactNode;
 }) {
@@ -53,7 +61,9 @@ export function AppShell({
   }, [menuOpen]);
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const exactActive = (href: string) => pathname === href;
   const showSettingsGroup = nav.users || nav.roles || nav.org || nav.audit || nav.settings;
+  const currentModule = moduleNavs.find((m) => pathname === `/m/${m.key}` || pathname.startsWith(`/m/${m.key}/`));
 
   const settingsItems = [
     nav.users && { href: "/settings/users", label: "Users", icon: <UsersIcon /> },
@@ -133,6 +143,24 @@ export function AppShell({
             <HomeIcon />
             Home
           </Link>
+          {currentModule && (
+            <>
+              <div className="shell__nav-group">{currentModule.name}</div>
+              {currentModule.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="shell__nav-item"
+                  data-active={
+                    (item.href === `/m/${currentModule.key}` ? exactActive(item.href) : isActive(item.href)) ||
+                    undefined
+                  }
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </>
+          )}
           {showSettingsGroup && (
             <>
               <div className="shell__nav-group">Settings</div>

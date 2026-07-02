@@ -7,6 +7,13 @@ export const catalogManifest: ModuleManifest = {
     "Your company context: business lines, services, asset inventory, relationships and network/data-flow diagrams. The entity hub other modules build on.",
   icon: "catalog",
   plannedPhase: 4,
+  navigation: [
+    { path: "", label: "Overview" },
+    { path: "/services", label: "Services" },
+    { path: "/assets", label: "Assets" },
+    { path: "/connections", label: "Connections" },
+    { path: "/map", label: "Map" },
+  ],
   permissions: {
     module: "catalog",
     label: "Service Catalog",

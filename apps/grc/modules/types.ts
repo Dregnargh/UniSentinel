@@ -20,4 +20,7 @@ export interface ModuleManifest {
   emits: string[];
   /** Which roadmap phase delivers the module's real screens. */
   plannedPhase: number;
+  /** Module sub-navigation shown in the sidebar while inside /m/<key>.
+   *  Paths are relative to the module root ("" = module home). */
+  navigation?: { path: string; label: string }[];
 }
