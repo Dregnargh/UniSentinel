@@ -38,3 +38,10 @@ export async function setSetting(
       set: { value, updatedAt: new Date() },
     });
 }
+
+export async function deleteSetting(workspaceId: string, namespace: string, key: string): Promise<void> {
+  const { db } = getDb();
+  await db
+    .delete(settings)
+    .where(and(eq(settings.workspaceId, workspaceId), eq(settings.namespace, namespace), eq(settings.key, key)));
+}

@@ -53,3 +53,17 @@ export const MailIcon = () => (
     <path d="m4 7 8 6 8-6" />
   </svg>
 );
+
+export const KeyIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" {...p}>
+    <circle cx="8" cy="14" r="4.5" />
+    <path d="m11.5 10.5 8-8M16 5l3 3M13.5 7.5l3 3" />
+  </svg>
+);
+
+export const BrandIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 3.5c-2.5 2.4-2.5 14.6 0 17M12 3.5c2.5 2.4 2.5 14.6 0 17M4 9.5h16M4 14.5h16" />
+  </svg>
+);

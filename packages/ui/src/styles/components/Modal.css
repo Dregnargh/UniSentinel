@@ -23,6 +23,16 @@
   overflow: clip;
 }
 
+.us-modal > form {
+  /* Forms commonly wrap Modal.Body + Modal.Footer; keep them inside the
+     modal's flex column so a tall body scrolls instead of clipping the
+     footer out of reach. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .us-modal:focus-visible {
   outline: none;
   box-shadow: var(--us-shadow-focus), var(--us-shadow-xl);

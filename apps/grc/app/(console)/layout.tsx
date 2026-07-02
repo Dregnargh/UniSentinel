@@ -6,6 +6,9 @@ import { getPermissionSet } from "@/platform/rbac/permissions";
 import { P, permitted } from "@/platform/rbac/catalog";
 import { getInbox } from "@/platform/notify/queries";
 import { getDb } from "@/platform/db";
+import { getEntitlements } from "@/platform/modules/entitlements";
+import { getBranding } from "@/platform/branding";
+import { MODULES } from "@/modules/registry";
 import { AppShell } from "@/components/shell/AppShell";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +18,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   if (user.mustChangePassword) redirect("/change-password");
 
   const { db } = getDb();
-  const [permissions, inbox, roleRows] = await Promise.all([
+  const [permissions, inbox, roleRows, entitlements, branding] = await Promise.all([
     getPermissionSet(user.id),
     getInbox(user.id),
     db
@@ -23,6 +26,8 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
       .from(userRoles)
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, user.id)),
+    getEntitlements(user.workspaceId),
+    getBranding(user.workspaceId),
   ]);
 
   return (
@@ -36,6 +41,18 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         settings: permitted(permissions, P.settingsManage),
       }}
       inbox={inbox}
+      modules={MODULES.map((m) => {
+        const e = entitlements.get(m.key);
+        return {
+          key: m.key,
+          name: m.name,
+          description: m.description,
+          icon: m.icon,
+          licensed: e?.status === "active",
+          expired: e?.status === "expired",
+        };
+      })}
+      hasLogo={branding !== null}
     >
       {children}
     </AppShell>

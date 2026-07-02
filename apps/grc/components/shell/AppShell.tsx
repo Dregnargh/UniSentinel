@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Avatar, Tooltip } from "@unisentinel/ui";
+import { Avatar } from "@unisentinel/ui";
 import { logout } from "@/platform/auth/actions";
 import type { InboxItem } from "@/platform/notify/queries";
 import { NotificationsBell } from "./NotificationsBell";
-import { AuditIcon, GridIcon, HomeIcon, OrgIcon, RolesIcon, MailIcon, UsersIcon } from "./icons";
+import { AppDrawer, type DrawerModule } from "./AppDrawer";
+import { AuditIcon, BrandIcon, HomeIcon, KeyIcon, OrgIcon, RolesIcon, MailIcon, UsersIcon } from "./icons";
 
 export interface ShellUser {
   name: string;
@@ -27,11 +28,15 @@ export function AppShell({
   user,
   nav,
   inbox,
+  modules,
+  hasLogo,
   children,
 }: {
   user: ShellUser;
   nav: ShellNavFlags;
   inbox: { items: InboxItem[]; unread: number };
+  modules: DrawerModule[];
+  hasLogo: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -56,22 +61,24 @@ export function AppShell({
     nav.org && { href: "/settings/org-units", label: "Organization", icon: <OrgIcon /> },
     nav.audit && { href: "/settings/audit-log", label: "Audit log", icon: <AuditIcon /> },
     nav.settings && { href: "/settings/mail", label: "Mail", icon: <MailIcon /> },
+    nav.settings && { href: "/settings/branding", label: "Branding", icon: <BrandIcon /> },
+    nav.settings && { href: "/settings/license", label: "License", icon: <KeyIcon /> },
   ].filter(Boolean) as { href: string; label: string; icon: React.ReactNode }[];
 
   return (
     <div className="shell">
       <header className="shell__topbar">
         <div className="shell__topbar-left">
-          {/* App drawer — becomes the M365-style module switcher with Phase 3 licensing. */}
-          <Tooltip content="Modules arrive with the module framework (Phase 3)">
-            <button className="shell__drawer-btn" aria-label="Modules" type="button">
-              <GridIcon />
-            </button>
-          </Tooltip>
+          <AppDrawer modules={modules} />
           <Link href="/" className="shell__brand">
-            <span className="shell__brand-mark" aria-hidden>
-              ◆
-            </span>
+            {hasLogo ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src="/api/branding/logo" alt="Company logo" className="shell__brand-logo" />
+            ) : (
+              <span className="shell__brand-mark" aria-hidden>
+                ◆
+              </span>
+            )}
             UniSentinel
           </Link>
         </div>

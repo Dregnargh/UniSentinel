@@ -438,3 +438,96 @@ a {
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: var(--us-space-1) var(--us-space-4);
 }
+
+/* ---- App drawer ------------------------------------------------------------ */
+
+.shell__drawer-wrap {
+  position: relative;
+}
+
+.shell__drawer {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  width: 320px;
+  background: #fff;
+  color: var(--us-color-text);
+  border: 1px solid var(--us-color-border);
+  border-radius: var(--us-radius-lg);
+  box-shadow: var(--us-shadow-lg);
+  padding: var(--us-space-4);
+  z-index: 60;
+}
+
+.shell__drawer-title {
+  font-size: var(--us-text-xs);
+  font-weight: var(--us-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--us-color-text-muted);
+  margin-bottom: var(--us-space-3);
+}
+
+.shell__drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--us-space-2);
+}
+
+.shell__drawer-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--us-space-2);
+  padding: var(--us-space-3) var(--us-space-2);
+  border-radius: var(--us-radius-md);
+  text-decoration: none;
+  color: var(--us-color-text);
+  font-size: var(--us-text-xs);
+  text-align: center;
+  position: relative;
+}
+
+a.shell__drawer-tile:hover {
+  background: color-mix(in srgb, var(--us-color-accent) 10%, transparent);
+}
+
+.shell__drawer-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--us-radius-md);
+  background: color-mix(in srgb, var(--us-color-accent) 12%, transparent);
+  color: var(--us-color-primary);
+}
+
+.shell__drawer-tile--locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shell__drawer-lock {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--us-color-text-muted);
+}
+
+.shell__brand-logo,
+.auth__brand-logo {
+  height: 28px;
+  max-width: 140px;
+  object-fit: contain;
+}
+
+.module-hero-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--us-radius-lg);
+  background: color-mix(in srgb, var(--us-color-accent) 14%, transparent);
+  color: var(--us-color-primary);
+  flex-shrink: 0;
+}

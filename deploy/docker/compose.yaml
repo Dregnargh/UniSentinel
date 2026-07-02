@@ -32,6 +32,10 @@ services:
       DATABASE_SSL: "false" # same-host container network; front TLS with a reverse proxy
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (openssl rand -base64 32)}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      FILE_STORAGE_PATH: /data/files
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
+    volumes:
+      - usdata:/data
     ports:
       - "${WEB_PORT:-8080}:3000"
     depends_on:
@@ -51,10 +55,15 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/unisentinel
       DATABASE_SSL: "false"
+      AUTH_SECRET: ${AUTH_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      FILE_STORAGE_PATH: /data/files
+    volumes:
+      - usdata:/data
     depends_on:
       web:
         condition: service_healthy
 
 volumes:
   pgdata:
+  usdata:

@@ -3,6 +3,7 @@
 // (Phase 3) and the catalog is assembled at build time from all of them.
 // The "*" wildcard (Administrator system role) matches everything, so new
 // module permissions are automatically covered for admins.
+import { MODULES } from "@/modules/registry";
 
 export interface PermissionAction {
   action: string;
@@ -22,8 +23,7 @@ export interface PermissionGroup {
   resources: PermissionResource[];
 }
 
-export const PERMISSION_CATALOG: PermissionGroup[] = [
-  {
+const PLATFORM_GROUP: PermissionGroup = {
     module: "platform",
     label: "Platform",
     resources: [
@@ -66,11 +66,17 @@ export const PERMISSION_CATALOG: PermissionGroup[] = [
       {
         resource: "settings",
         label: "Workspace settings",
-        description: "Mail (SMTP) and other workspace configuration",
+        description: "Mail, branding, licensing and other workspace configuration",
         actions: [{ action: "manage", label: "Manage settings" }],
       },
     ],
-  },
+  };
+
+// Platform permissions + every module's contribution (licensed or not, so
+// roles can be prepared before purchase — enforcement is entitlement + RBAC).
+export const PERMISSION_CATALOG: PermissionGroup[] = [
+  PLATFORM_GROUP,
+  ...MODULES.map((m) => m.permissions),
 ];
 
 /** Every valid permission string in the catalog (excludes the "*" wildcard). */

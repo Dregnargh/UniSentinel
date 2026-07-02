@@ -18,3 +18,6 @@ ds-bundle/
 # (Both Next apps pin outputFileTracingRoot to the repo root so tracing stays correct.)
 .next/
 *.tsbuildinfo
+
+# local file-storage tree (apps/grc dev)
+apps/grc/data/

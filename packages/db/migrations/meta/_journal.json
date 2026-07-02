@@ -36,6 +36,13 @@
       "when": 1782970974310,
       "tag": "0004_drop-users-role",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782974024075,
+      "tag": "0005_module-framework",
+      "breakpoints": true
     }
   ]
 }
