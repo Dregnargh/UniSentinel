@@ -30,4 +30,10 @@ await esbuild.build({
   outfile: path.join(appRoot, "dist/migrate.cjs"),
 });
 
-console.log("[build-worker] dist/worker.cjs + dist/migrate.cjs written");
+await esbuild.build({
+  ...shared,
+  entryPoints: [path.join(appRoot, "worker/seed-demo.ts")],
+  outfile: path.join(appRoot, "dist/seed-demo.cjs"),
+});
+
+console.log("[build-worker] dist/worker.cjs + dist/migrate.cjs + dist/seed-demo.cjs written");

@@ -1,0 +1,76 @@
+name: Staging
+
+# The staging channel (roadmap Phase 10): every push to main publishes
+#   ghcr.io/<owner>/unisentinel:staging          (moving tag — the staging box follows it)
+#   ghcr.io/<owner>/unisentinel:sha-<short>      (immutable — for pinning/bisecting)
+# after the image passes the same boot test CI uses. workflow_dispatch allows
+# publishing a staging build from any branch before it merges.
+# Staging host how-to: deploy/docs/staging.md
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: staging-publish
+  cancel-in-progress: true
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive image name and tags
+        id: meta
+        run: |
+          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')/unisentinel"
+          SHORT="sha-$(git rev-parse --short HEAD)"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          docker build -f deploy/docker/Dockerfile \
+            --build-arg APP_VERSION="staging-$(git rev-parse --short HEAD)" \
+            -t "${{ steps.meta.outputs.image }}:staging" \
+            -t "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short }}" .
+
+      - name: Boot test (stack + seed-demo)
+        working-directory: deploy/docker
+        run: |
+          {
+            echo "POSTGRES_PASSWORD=staging-smoke"
+            echo "AUTH_SECRET=$(openssl rand -base64 32)"
+            echo "COOKIE_SECURE=false"
+            echo "IMAGE=${{ steps.meta.outputs.image }}"
+            echo "TAG=staging"
+          } > .env
+          docker compose up -d
+          ready=""
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/readyz; then ready=1; break; fi
+            sleep 3
+          done
+          [ "$ready" = "1" ] || { docker compose logs; exit 1; }
+          # The seeder must provision a fresh instance without errors.
+          docker compose run --rm web seed-demo | tee seed.out
+          grep -q "Demo workspace seeded" seed.out
+          docker compose down -v
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push staging tags
+        run: |
+          docker push "${{ steps.meta.outputs.image }}:staging"
+          docker push "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.short }}"

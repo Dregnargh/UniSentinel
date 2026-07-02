@@ -40,7 +40,7 @@ WORKDIR /app
 COPY --from=build /repo/apps/grc/.next/standalone ./
 COPY --from=build /repo/apps/grc/.next/static ./apps/grc/.next/static
 COPY --from=build /repo/apps/grc/public ./apps/grc/public
-COPY --from=build /repo/apps/grc/dist/worker.cjs /repo/apps/grc/dist/migrate.cjs ./
+COPY --from=build /repo/apps/grc/dist/worker.cjs /repo/apps/grc/dist/migrate.cjs /repo/apps/grc/dist/seed-demo.cjs ./
 COPY --from=build /repo/packages/db/migrations ./migrations
 COPY deploy/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && chown -R node:node /app
