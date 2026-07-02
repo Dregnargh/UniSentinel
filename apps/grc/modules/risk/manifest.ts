@@ -7,6 +7,12 @@ export const riskManifest: ModuleManifest = {
     "Risk register with configurable methodologies, likelihood × impact heatmaps, treatment plans and acceptance workflows. Enriched by Service Catalog scope and Tasks & Activities execution.",
   icon: "risk",
   plannedPhase: 6,
+  navigation: [
+    { path: "", label: "Overview" },
+    { path: "/register", label: "Register" },
+    { path: "/heatmap", label: "Heatmap" },
+    { path: "/methodology", label: "Methodology" },
+  ],
   permissions: {
     module: "risk",
     label: "Risk Management",

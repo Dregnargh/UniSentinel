@@ -622,3 +622,55 @@ a.shell__drawer-tile:hover {
   opacity: 0.35;
   cursor: default;
 }
+
+/* ---- Risk heatmap ------------------------------------------------------------ */
+
+.heatmap {
+  display: grid;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.heatmap__axis {
+  display: flex;
+  align-items: center;
+  font-size: var(--us-text-xs);
+  color: var(--us-color-text-muted);
+  padding-right: var(--us-space-2);
+}
+
+.heatmap__axis--x {
+  justify-content: center;
+  padding: var(--us-space-1) 0 0;
+  text-align: center;
+}
+
+.heatmap__cell {
+  position: relative;
+  border: 1px solid var(--us-color-border);
+  border-radius: var(--us-radius-md);
+  min-height: 64px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font: inherit;
+}
+
+.heatmap__cell[data-selected] {
+  outline: 3px solid var(--us-color-primary);
+  outline-offset: -1px;
+}
+
+.heatmap__count {
+  font-size: var(--us-text-xl);
+  font-weight: var(--us-weight-bold);
+  color: var(--us-color-heading);
+}
+
+.heatmap__score {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: var(--us-text-xs);
+  color: var(--us-color-text-muted);
+}
