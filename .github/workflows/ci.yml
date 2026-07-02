@@ -47,9 +47,11 @@ jobs:
         working-directory: deploy/docker
         run: |
           echo "POSTGRES_PASSWORD=ci-only" > .env
+          echo "AUTH_SECRET=ci-only-not-a-real-secret" >> .env
+          echo "COOKIE_SECURE=false" >> .env
           echo "IMAGE=unisentinel/grc" >> .env
           echo "TAG=ci" >> .env
-          docker compose up -d --no-build
+          docker compose up -d
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8080/readyz; then ready=1; break; fi
             sleep 3

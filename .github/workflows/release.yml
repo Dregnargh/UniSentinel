@@ -1,0 +1,93 @@
+name: Release
+
+# Cut a release by pushing a semver tag:
+#   git tag v0.2.0 && git push origin v0.2.0
+# Produces: GHCR image (:vX.Y.Z and :latest), air-gap images tarball,
+# customer bundle tarball, sha256 checksums — attached to a GitHub Release.
+# See deploy/docs/release-process.md.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version and image name
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')/unisentinel"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          docker build -f deploy/docker/Dockerfile \
+            --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
+            -t "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" \
+            -t "${{ steps.meta.outputs.image }}:latest" .
+
+      # The same boot test CI runs — a release that can't start never ships.
+      - name: Smoke test the release image
+        working-directory: deploy/docker
+        run: |
+          {
+            echo "POSTGRES_PASSWORD=release-smoke"
+            echo "AUTH_SECRET=$(openssl rand -base64 32)"
+            echo "COOKIE_SECURE=false"
+            echo "IMAGE=${{ steps.meta.outputs.image }}"
+            echo "TAG=${{ steps.meta.outputs.version }}"
+          } > .env
+          docker compose up -d
+          ready=""
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/readyz; then ready=1; break; fi
+            sleep 3
+          done
+          [ "$ready" = "1" ] || { docker compose logs; exit 1; }
+          curl -fsS http://localhost:8080/healthz | grep -F '"${{ steps.meta.outputs.version }}"' \
+            || { echo "healthz does not report the release version"; curl -fsS http://localhost:8080/healthz; exit 1; }
+          docker compose down -v
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        run: |
+          docker push "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}"
+          docker push "${{ steps.meta.outputs.image }}:latest"
+
+      - name: Build air-gap images tarball
+        run: |
+          mkdir -p dist
+          docker pull postgres:16
+          docker save "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}" postgres:16 \
+            | gzip > "dist/unisentinel-images-${{ steps.meta.outputs.version }}.tar.gz"
+
+      - name: Package customer bundle
+        run: deploy/package-bundle.sh "${{ steps.meta.outputs.version }}" "${{ steps.meta.outputs.image }}"
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum *.tar.gz > "unisentinel-${{ steps.meta.outputs.version }}.sha256"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/unisentinel-bundle-${{ steps.meta.outputs.version }}.tar.gz
+            dist/unisentinel-images-${{ steps.meta.outputs.version }}.tar.gz
+            dist/unisentinel-${{ steps.meta.outputs.version }}.sha256

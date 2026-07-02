@@ -1,13 +1,16 @@
 # UniSentinel GRC platform — self-hosted stack (on-prem Linux / any Docker host).
-#   cp .env.example .env   # set POSTGRES_PASSWORD
+# This file ships VERBATIM inside the release bundle; keep it runtime-only
+# (no build sections — images come from the registry or an air-gap tarball;
+# local dev builds with: docker build -f deploy/docker/Dockerfile .).
+#   cp .env.example .env   # set POSTGRES_PASSWORD + AUTH_SECRET
 #   docker compose up -d
-# Upgrades: docker compose pull && docker compose up -d
-# (the web container applies DB migrations on start, serialized by an advisory lock).
+# Upgrades: ./upgrade.sh in the bundle (pre-upgrade dump + health-checked);
+# the web container applies DB migrations on start (advisory-locked).
 name: unisentinel
 
 services:
   postgres:
-    image: postgres:16
+    image: ${POSTGRES_IMAGE:-postgres:16}
     restart: unless-stopped
     environment:
       POSTGRES_DB: unisentinel
@@ -21,10 +24,7 @@ services:
       retries: 12
 
   web:
-    image: ${IMAGE:-unisentinel/grc}:${TAG:-latest}
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile
+    image: ${IMAGE:-ghcr.io/dregnargh/unisentinel}:${TAG:-latest}
     restart: unless-stopped
     command: ["web"]
     environment:
@@ -53,7 +53,7 @@ services:
       start_period: 15s
 
   worker:
-    image: ${IMAGE:-unisentinel/grc}:${TAG:-latest}
+    image: ${IMAGE:-ghcr.io/dregnargh/unisentinel}:${TAG:-latest}
     restart: unless-stopped
     command: ["worker"]
     environment:

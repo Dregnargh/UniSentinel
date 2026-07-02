@@ -9,6 +9,8 @@ Monorepo for the **UniSentinel GRC platform** and its supporting sites.
 | `packages/ui` | `@unisentinel/ui` design system (React 19, CSS-variable tokens). |
 | `packages/db` | Product database: drizzle schema + versioned SQL migrations. |
 | `deploy/docker` | Production image + docker-compose stack for self-hosting. |
+| `deploy/bundle` | Customer release bundle: install/upgrade/backup/restore scripts (online + air-gap). |
+| `deploy/docs` | Self-hosting docs (ship inside the bundle) + vendor release process. |
 
 Plan & architecture: [`GRC-APP-PLAN.md`](./GRC-APP-PLAN.md).
 
@@ -31,15 +33,23 @@ Health probes: `/healthz` (liveness, no DB), `/readyz` (DB + migrations).
 
 ## Self-hosted stack
 
+Customers install from the **release bundle** (see Releases):
+`install.sh` / `upgrade.sh` (with pre-upgrade dump) / `backup.sh` /
+`restore.sh`, online or air-gapped. Docs live in `deploy/docs/` and ship
+inside the bundle. Releases are cut by pushing a `vX.Y.Z` tag
+(`deploy/docs/release-process.md`).
+
+For development, the same stack runs from the repo:
+
 ```bash
+docker build -f deploy/docker/Dockerfile -t ghcr.io/dregnargh/unisentinel:latest .
 cd deploy/docker
-cp .env.example .env   # set POSTGRES_PASSWORD
+cp .env.example .env   # set POSTGRES_PASSWORD + AUTH_SECRET
 docker compose up -d   # web on :8080, worker, postgres
 ```
 
 The web container applies migrations on start (serialized by a Postgres
-advisory lock), so `docker compose pull && docker compose up -d` is the
-upgrade path.
+advisory lock).
 
 ## Development notes
 
