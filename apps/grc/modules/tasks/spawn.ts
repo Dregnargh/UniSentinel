@@ -14,6 +14,7 @@ export async function spawnTask(input: {
   priority?: "low" | "medium" | "high" | "urgent";
   assigneeUserId?: string | null;
   dueDate?: Date | null;
+  completed?: boolean;
   origin: { type: string; id: string };
   actor: { id: string; name: string };
 }): Promise<string> {
@@ -28,10 +29,11 @@ export async function spawnTask(input: {
     workspaceId: input.workspaceId,
     title: input.title,
     description: input.description ?? "",
-    status: "todo",
+    status: input.completed ? "done" : "todo",
     priority: input.priority ?? "medium",
     assigneeUserId: input.assigneeUserId ?? null,
     dueDate: input.dueDate ?? null,
+    completedAt: input.completed ? now : null,
     originType: input.origin.type,
     originId: input.origin.id,
     createdAt: now,

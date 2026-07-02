@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireModule } from "@/platform/modules/guard";
+import { permitted } from "@/platform/rbac/catalog";
 import { getMethodology } from "@/modules/risk/methodology-store";
 import { listRisks } from "@/modules/risk/queries";
+import { promotionStatus } from "@/modules/risk/integrations";
 import { RiskOverviewClient } from "./RiskOverviewClient";
 
 export const metadata: Metadata = { title: "Risk Management" };
@@ -10,9 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function RiskOverviewPage() {
   const ctx = await requireModule("risk", "risk.risks.view");
-  const [risks, methodology] = await Promise.all([
+  const canManage = permitted(ctx.permissions, "risk.risks.manage");
+  const [risks, methodology, promo] = await Promise.all([
     listRisks(ctx.user.workspaceId),
     getMethodology(ctx.user.workspaceId),
+    canManage ? promotionStatus(ctx.user.workspaceId) : null,
   ]);
   if (risks.length === 0) {
     return (
@@ -30,5 +34,11 @@ export default async function RiskOverviewPage() {
       </div>
     );
   }
-  return <RiskOverviewClient risks={risks} methodology={methodology} />;
+  return (
+    <RiskOverviewClient
+      risks={risks}
+      methodology={methodology}
+      promotable={{ scope: promo?.scope ?? 0, treatments: promo?.treatments ?? 0 }}
+    />
+  );
 }

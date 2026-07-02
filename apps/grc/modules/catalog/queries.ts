@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   catAssets,
   catDataFlows,
@@ -159,4 +159,52 @@ export async function searchCatalogEntities(
     ...services.map((s) => ({ type: "catalog:service" as const, id: s.id, name: s.name, detail: `service · ${s.detail}` })),
     ...assets.map((a) => ({ type: "catalog:asset" as const, id: a.id, name: a.name, detail: `asset · ${a.detail}` })),
   ].slice(0, limit);
+}
+
+/** Provider surface: resolve catalog refs ("catalog:service"/"catalog:asset" + id) to names. */
+export async function resolveCatalogEntities(
+  workspaceId: string,
+  refs: { type: string; id: string }[],
+): Promise<Map<string, { name: string; detail: string }>> {
+  const { db } = getDb();
+  const serviceIds = refs.filter((r) => r.type === "catalog:service").map((r) => r.id);
+  const assetIds = refs.filter((r) => r.type === "catalog:asset").map((r) => r.id);
+  const out = new Map<string, { name: string; detail: string }>();
+  if (serviceIds.length) {
+    const rows = await db
+      .select({ id: catServices.id, name: catServices.name, criticality: catServices.criticality })
+      .from(catServices)
+      .where(and(eq(catServices.workspaceId, workspaceId), inArray(catServices.id, serviceIds)));
+    for (const r of rows) out.set(`catalog:service:${r.id}`, { name: r.name, detail: `service · ${r.criticality}` });
+  }
+  if (assetIds.length) {
+    const rows = await db
+      .select({ id: catAssets.id, name: catAssets.name, type: catAssets.type })
+      .from(catAssets)
+      .where(and(eq(catAssets.workspaceId, workspaceId), inArray(catAssets.id, assetIds)));
+    for (const r of rows) out.set(`catalog:asset:${r.id}`, { name: r.name, detail: `asset · ${r.type}` });
+  }
+  return out;
+}
+
+/** Provider surface: exact-name match for promotion suggestions. */
+export async function findCatalogEntityByName(
+  workspaceId: string,
+  name: string,
+): Promise<{ type: "catalog:service" | "catalog:asset"; id: string; name: string } | null> {
+  const { db } = getDb();
+  const lower = name.trim().toLowerCase();
+  const services = await db
+    .select({ id: catServices.id, name: catServices.name })
+    .from(catServices)
+    .where(and(eq(catServices.workspaceId, workspaceId), sql`lower(${catServices.name}) = ${lower}`))
+    .limit(1);
+  if (services[0]) return { type: "catalog:service", id: services[0].id, name: services[0].name };
+  const assets = await db
+    .select({ id: catAssets.id, name: catAssets.name })
+    .from(catAssets)
+    .where(and(eq(catAssets.workspaceId, workspaceId), sql`lower(${catAssets.name}) = ${lower}`))
+    .limit(1);
+  if (assets[0]) return { type: "catalog:asset", id: assets[0].id, name: assets[0].name };
+  return null;
 }

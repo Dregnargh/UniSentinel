@@ -4,8 +4,17 @@ import Link from "next/link";
 import { Badge, Card, Stat, Table } from "@unisentinel/ui";
 import type { RiskRow } from "@/modules/risk/queries";
 import { BAND_LABEL, bandFor, bandTone, riskScore, type Methodology } from "@/modules/risk/methodology";
+import { PromoteBanner } from "./PromoteBanner";
 
-export function RiskOverviewClient({ risks, methodology }: { risks: RiskRow[]; methodology: Methodology }) {
+export function RiskOverviewClient({
+  risks,
+  methodology,
+  promotable,
+}: {
+  risks: RiskRow[];
+  methodology: Methodology;
+  promotable: { scope: number; treatments: number };
+}) {
   const withScore = risks.map((r) => {
     const score = riskScore(r.inherentLikelihood, r.inherentImpact);
     return { ...r, score, band: bandFor(score, methodology) };
@@ -26,6 +35,7 @@ export function RiskOverviewClient({ risks, methodology }: { risks: RiskRow[]; m
           </p>
         </div>
       </div>
+      <PromoteBanner scope={promotable.scope} treatments={promotable.treatments} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--us-space-4)" }}>
         <Stat label="Critical" value={String(byBand.critical)} />
         <Stat label="High" value={String(byBand.high)} />

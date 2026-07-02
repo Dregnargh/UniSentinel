@@ -11,11 +11,14 @@ import {
   addScopeItem,
   addTreatmentAction,
   assessResidual,
+  createTreatmentTask,
+  linkScopeEntity,
   removeScopeItem,
   removeTreatmentAction,
   setRiskStatus,
   setTreatmentStrategy,
   toggleTreatmentAction,
+  unlinkScopeEntity,
 } from "@/modules/risk/actions";
 import { BAND_LABEL, bandFor, bandTone, riskScore, type Methodology } from "@/modules/risk/methodology";
 import { LevelSelect } from "../RegisterClient";
@@ -43,6 +46,38 @@ interface AssessmentRow {
   by: string;
   at: string;
 }
+
+// Serialized integration data — mirrors modules/risk/integrations.ts shapes
+// (kept local: this file must not import server-only modules).
+interface CatalogEntityRef {
+  type: string;
+  id: string;
+  name: string;
+  detail: string;
+}
+
+interface LinkedTask {
+  id: string;
+  title: string;
+  status: string;
+  assigneeName: string | null;
+  dueDate: string | null;
+}
+
+interface Integrations {
+  catalogLicensed: boolean;
+  tasksLicensed: boolean;
+  catalogScope: CatalogEntityRef[];
+  catalogCandidates: CatalogEntityRef[];
+  linkedTasks: LinkedTask[];
+}
+
+const taskStatusTone: Record<string, "neutral" | "info" | "success" | "warning"> = {
+  todo: "neutral",
+  in_progress: "info",
+  blocked: "warning",
+  done: "success",
+};
 
 function Score({ l, i, m, label }: { l: number | null; i: number | null; m: Methodology; label: string }) {
   if (!l || !i)
@@ -74,6 +109,7 @@ export function RiskDetailClient({
   scope,
   actions,
   assessments,
+  integrations,
   can,
 }: {
   risk: RiskRow;
@@ -81,6 +117,7 @@ export function RiskDetailClient({
   scope: ScopeItem[];
   actions: TreatmentAction[];
   assessments: AssessmentRow[];
+  integrations: Integrations;
   can: { manage: boolean; approve: boolean };
 }) {
   const [error, setError] = React.useState<string | null>(null);
@@ -151,10 +188,21 @@ export function RiskDetailClient({
       </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--us-space-6)" }}>
-        <ScopeCard riskId={risk.id} scope={scope} canManage={can.manage} run={run} pending={pending} />
+        <ScopeCard
+          riskId={risk.id}
+          scope={scope}
+          catalogLicensed={integrations.catalogLicensed}
+          catalogScope={integrations.catalogScope}
+          candidates={integrations.catalogCandidates}
+          canManage={can.manage}
+          run={run}
+          pending={pending}
+        />
         <TreatmentCard
           risk={risk}
           actions={actions}
+          tasksLicensed={integrations.tasksLicensed}
+          linkedTasks={integrations.linkedTasks}
           canManage={can.manage}
           run={run}
           pending={pending}
@@ -200,53 +248,148 @@ export function RiskDetailClient({
   );
 }
 
+function LocalScopeList({
+  scope,
+  canManage,
+  catalogLicensed,
+  run,
+  pending,
+}: {
+  scope: ScopeItem[];
+  canManage: boolean;
+  catalogLicensed: boolean;
+  run: (fn: () => Promise<ActionState>) => void;
+  pending: boolean;
+}) {
+  if (scope.length === 0) return null;
+  return (
+    <>
+      {catalogLicensed && (
+        <p className="muted" style={{ margin: "var(--us-space-4) 0 var(--us-space-2)", fontSize: "var(--us-text-xs)" }}>
+          Local items (not yet in the catalog) — <Link href="/m/risk/promote">promote them</Link>.
+        </p>
+      )}
+      <ul style={{ margin: "0 0 var(--us-space-4)", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+        {scope.map((s) => (
+          <li key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--us-text-sm)" }}>
+            <Badge tone="neutral">{catalogLicensed ? `local · ${s.kind}` : s.kind}</Badge>
+            <span>{s.name}</span>
+            {canManage && (
+              <button
+                type="button"
+                className="muted"
+                style={{ marginLeft: "auto", border: 0, background: "none", cursor: "pointer" }}
+                disabled={pending}
+                onClick={() => run(() => removeScopeItem(s.id))}
+                aria-label={`Remove ${s.name}`}
+              >
+                ✕
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 function ScopeCard({
   riskId,
   scope,
+  catalogLicensed,
+  catalogScope,
+  candidates,
   canManage,
   run,
   pending,
 }: {
   riskId: string;
   scope: ScopeItem[];
+  catalogLicensed: boolean;
+  catalogScope: CatalogEntityRef[];
+  candidates: CatalogEntityRef[];
   canManage: boolean;
   run: (fn: () => Promise<ActionState>) => void;
   pending: boolean;
 }) {
   const [state, action, adding] = useActionState<ActionState, FormData>(addScopeItem, {});
+  const [linkState, linkAction, linking] = useActionState<ActionState, FormData>(linkScopeEntity, {});
+  const linkedIds = new Set(catalogScope.map((e) => `${e.type}:${e.id}`));
+  const linkable = candidates.filter((c) => !linkedIds.has(`${c.type}:${c.id}`));
+
   return (
     <Card>
       <Card.Header>
-        <Card.Title subtitle="What this risk affects (links to the Service Catalog when licensed)">Scope</Card.Title>
+        <Card.Title
+          subtitle={
+            catalogLicensed
+              ? "Linked Service Catalog entities this risk affects"
+              : "What this risk affects (links to the Service Catalog when licensed)"
+          }
+        >
+          Scope
+        </Card.Title>
       </Card.Header>
       <Card.Body>
-        {scope.length === 0 ? (
+        {catalogLicensed && (
+          <>
+            {catalogScope.length === 0 ? (
+              <p className="muted" style={{ marginTop: 0 }}>
+                No catalog entities linked yet.
+              </p>
+            ) : (
+              <ul style={{ margin: "0 0 var(--us-space-4)", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                {catalogScope.map((e) => (
+                  <li key={`${e.type}:${e.id}`} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--us-text-sm)" }}>
+                    <Badge tone="brand">{e.detail || e.type.replace("catalog:", "")}</Badge>
+                    <span>{e.name}</span>
+                    {canManage && (
+                      <button
+                        type="button"
+                        className="muted"
+                        style={{ marginLeft: "auto", border: 0, background: "none", cursor: "pointer" }}
+                        disabled={pending}
+                        onClick={() => run(() => unlinkScopeEntity(riskId, e.type, e.id))}
+                        aria-label={`Unlink ${e.name}`}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canManage && (
+              <form action={linkAction} className="form-grid" style={{ marginBottom: "var(--us-space-2)" }}>
+                {linkState.error && <Alert tone="danger">{linkState.error}</Alert>}
+                <input type="hidden" name="riskId" value={riskId} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Select name="entityRef" defaultValue="" required aria-label="Catalog entity to link">
+                    <option value="" disabled>
+                      Pick a catalog entity…
+                    </option>
+                    {linkable.map((c) => (
+                      <option key={`${c.type}:${c.id}`} value={`${c.type}|${c.id}`}>
+                        {c.name} ({c.detail})
+                      </option>
+                    ))}
+                  </Select>
+                  <Button type="submit" size="sm" variant="outline" loading={linking}>
+                    Link
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
+
+        {!catalogLicensed && scope.length === 0 && (
           <p className="muted" style={{ marginTop: 0 }}>
             Nothing in scope yet.
           </p>
-        ) : (
-          <ul style={{ margin: "0 0 var(--us-space-4)", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
-            {scope.map((s) => (
-              <li key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--us-text-sm)" }}>
-                <Badge tone="neutral">{s.kind}</Badge>
-                <span>{s.name}</span>
-                {canManage && (
-                  <button
-                    type="button"
-                    className="muted"
-                    style={{ marginLeft: "auto", border: 0, background: "none", cursor: "pointer" }}
-                    disabled={pending}
-                    onClick={() => run(() => removeScopeItem(s.id))}
-                    aria-label={`Remove ${s.name}`}
-                  >
-                    ✕
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
         )}
-        {canManage && (
+        <LocalScopeList scope={scope} canManage={canManage} catalogLicensed={catalogLicensed} run={run} pending={pending} />
+        {canManage && !catalogLicensed && (
           <form action={action} className="form-grid">
             {state.error && <Alert tone="danger">{state.error}</Alert>}
             <input type="hidden" name="riskId" value={riskId} />
@@ -272,26 +415,33 @@ function ScopeCard({
 function TreatmentCard({
   risk,
   actions,
+  tasksLicensed,
+  linkedTasks,
   canManage,
   run,
   pending,
 }: {
   risk: RiskRow;
   actions: TreatmentAction[];
+  tasksLicensed: boolean;
+  linkedTasks: LinkedTask[];
   canManage: boolean;
   run: (fn: () => Promise<ActionState>) => void;
   pending: boolean;
 }) {
   const [stratState, stratAction, stratPending] = useActionState<ActionState, FormData>(setTreatmentStrategy, {});
   const [addState, addAction, adding] = useActionState<ActionState, FormData>(addTreatmentAction, {});
+  const [taskState, taskAction, taskPending] = useActionState<ActionState, FormData>(createTreatmentTask, {});
   const done = actions.filter((a) => a.done).length;
+  const tasksDone = linkedTasks.filter((t) => t.status === "done").length;
+  const subtitle = tasksLicensed
+    ? `Treatment plan — ${tasksDone}/${linkedTasks.length} linked tasks done`
+    : `Treatment plan (${done}/${actions.length} actions done — becomes Tasks when licensed)`;
 
   return (
     <Card>
       <Card.Header>
-        <Card.Title subtitle={`Treatment plan (${done}/${actions.length} actions done — becomes Tasks when licensed)`}>
-          Treatment
-        </Card.Title>
+        <Card.Title subtitle={subtitle}>Treatment</Card.Title>
       </Card.Header>
       <Card.Body>
         {canManage && (
@@ -317,38 +467,82 @@ function TreatmentCard({
             <Badge tone="info">{risk.treatmentStrategy}</Badge> {risk.treatmentNotes}
           </p>
         )}
-        {actions.length > 0 && (
-          <ul style={{ margin: "0 0 var(--us-space-4)", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
-            {actions.map((a) => (
-              <li key={a.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--us-text-sm)" }}>
-                <Checkbox
-                  checked={a.done}
-                  disabled={!canManage || pending}
-                  onChange={(e) => run(() => toggleTreatmentAction(a.id, e.target.checked))}
-                  label={a.title}
-                />
-                {a.dueDate && (
-                  <span className="muted" style={{ fontSize: "var(--us-text-xs)" }}>
-                    due {a.dueDate}
-                  </span>
-                )}
-                {canManage && (
-                  <button
-                    type="button"
-                    className="muted"
-                    style={{ marginLeft: "auto", border: 0, background: "none", cursor: "pointer" }}
-                    disabled={pending}
-                    onClick={() => run(() => removeTreatmentAction(a.id))}
-                    aria-label={`Remove ${a.title}`}
-                  >
-                    ✕
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
+
+        {tasksLicensed && (
+          <>
+            {linkedTasks.length === 0 ? (
+              <p className="muted" style={{ marginTop: 0 }}>
+                No treatment tasks yet.
+              </p>
+            ) : (
+              <ul style={{ margin: "0 0 var(--us-space-4)", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                {linkedTasks.map((t) => (
+                  <li key={t.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--us-text-sm)" }}>
+                    <Badge tone={taskStatusTone[t.status] ?? "neutral"}>{t.status.replace("_", " ")}</Badge>
+                    <span>{t.title}</span>
+                    <span className="muted" style={{ marginLeft: "auto", fontSize: "var(--us-text-xs)" }}>
+                      {t.assigneeName ?? "unassigned"}
+                      {t.dueDate && <> · due {t.dueDate}</>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canManage && (
+              <form action={taskAction} className="form-grid" style={{ marginBottom: "var(--us-space-2)" }}>
+                {taskState.error && <Alert tone="danger">{taskState.error}</Alert>}
+                <input type="hidden" name="riskId" value={risk.id} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Input name="title" placeholder="Enable DB encryption at rest" required aria-label="Treatment task title" />
+                  <Input name="dueDate" type="date" aria-label="Treatment task due date" style={{ maxWidth: 160 }} />
+                  <Button type="submit" size="sm" variant="outline" loading={taskPending}>
+                    Create task
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
         )}
-        {canManage && (
+
+        {actions.length > 0 && (
+          <>
+            {tasksLicensed && (
+              <p className="muted" style={{ margin: "var(--us-space-4) 0 var(--us-space-2)", fontSize: "var(--us-text-xs)" }}>
+                Local checklist items (not yet tasks) — <Link href="/m/risk/promote">promote them</Link>.
+              </p>
+            )}
+            <ul style={{ margin: "0 0 var(--us-space-4)", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+              {actions.map((a) => (
+                <li key={a.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "var(--us-text-sm)" }}>
+                  <Checkbox
+                    checked={a.done}
+                    disabled={!canManage || pending}
+                    onChange={(e) => run(() => toggleTreatmentAction(a.id, e.target.checked))}
+                    label={a.title}
+                  />
+                  {a.dueDate && (
+                    <span className="muted" style={{ fontSize: "var(--us-text-xs)" }}>
+                      due {a.dueDate}
+                    </span>
+                  )}
+                  {canManage && (
+                    <button
+                      type="button"
+                      className="muted"
+                      style={{ marginLeft: "auto", border: 0, background: "none", cursor: "pointer" }}
+                      disabled={pending}
+                      onClick={() => run(() => removeTreatmentAction(a.id))}
+                      aria-label={`Remove ${a.title}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {canManage && !tasksLicensed && (
           <form action={addAction} className="form-grid">
             {addState.error && <Alert tone="danger">{addState.error}</Alert>}
             <input type="hidden" name="riskId" value={risk.id} />

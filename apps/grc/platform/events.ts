@@ -18,7 +18,12 @@ type Listener = (event: {
   actorUserId: string | null;
 }) => Promise<void>;
 
-const listeners = new Map<string, Listener[]>();
+// The registry MUST live on globalThis: the bundler duplicates this module
+// into the instrumentation bundle (where listeners register) and each route's
+// server chunk (where emitEvent runs). A module-local Map would give every
+// copy its own empty registry and listeners would silently never fire.
+const globalCache = globalThis as unknown as { __usEventListeners?: Map<string, Listener[]> };
+const listeners = (globalCache.__usEventListeners ??= new Map<string, Listener[]>());
 
 export function onEvent(type: string, listener: Listener): void {
   (listeners.get(type) ?? listeners.set(type, []).get(type)!).push(listener);

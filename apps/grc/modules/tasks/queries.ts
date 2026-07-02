@@ -142,3 +142,30 @@ export async function listComments(taskId: string, workspaceId: string): Promise
     .orderBy(asc(tskComments.createdAt));
   return rows.map((c) => ({ id: c.id, authorName: c.authorName, body: c.body, at: c.createdAt.toISOString() }));
 }
+
+/** Provider surface: tasks spawned by another module's entity (origin link). */
+export async function listTasksByOrigin(
+  workspaceId: string,
+  origin: { type: string; id: string },
+): Promise<{ id: string; title: string; status: string; assigneeName: string | null; dueDate: string | null }[]> {
+  const { db } = getDb();
+  const rows = await db
+    .select({
+      id: tskTasks.id,
+      title: tskTasks.title,
+      status: tskTasks.status,
+      assigneeName: users.name,
+      dueDate: tskTasks.dueDate,
+    })
+    .from(tskTasks)
+    .leftJoin(users, eq(tskTasks.assigneeUserId, users.id))
+    .where(
+      and(
+        eq(tskTasks.workspaceId, workspaceId),
+        eq(tskTasks.originType, origin.type),
+        eq(tskTasks.originId, origin.id),
+      ),
+    )
+    .orderBy(asc(tskTasks.createdAt));
+  return rows.map((r) => ({ ...r, dueDate: r.dueDate ? r.dueDate.toISOString().slice(0, 10) : null }));
+}

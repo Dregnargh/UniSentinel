@@ -14,6 +14,7 @@ import {
   riskScore,
   type Methodology,
 } from "@/modules/risk/methodology";
+import { PromoteBanner } from "../PromoteBanner";
 
 interface Option {
   id: string;
@@ -46,6 +47,7 @@ export function RegisterClient({
   orgUnits,
   canManage,
   canDelete,
+  promotable,
 }: {
   risks: RiskRow[];
   methodology: Methodology;
@@ -53,6 +55,7 @@ export function RegisterClient({
   orgUnits: Option[];
   canManage: boolean;
   canDelete: boolean;
+  promotable: { scope: number; treatments: number };
 }) {
   const [query, setQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -84,6 +87,7 @@ export function RegisterClient({
         </div>
         {canManage && <Button onClick={() => setEditorTarget("new")}>New risk</Button>}
       </div>
+      <PromoteBanner scope={promotable.scope} treatments={promotable.treatments} />
       {error && (
         <Alert tone="danger" onClose={() => setError(null)}>
           {error}
