@@ -539,8 +539,10 @@ The executive layer over everything licensed.
 ## 12. Build phases & milestones
 
 Honest solo-dev sequencing: platform first (M1), then prove the **ecosystem pattern with a
-sellable module trio** (M2), then package for on-prem (M3), then widen (M4–M5). Each phase
-remains independently shippable and demoable.
+sellable module trio** (M2), then package for on-prem and stand up the **staging channel**
+(M3), then build out **every module** with an owner staging-review + enhancement round after
+each (M4), then cloud + enterprise depth (M5). Each phase remains independently shippable
+and demoable.
 
 ### M1 — Platform foundation
 - **Phase 0 — Repo & runtime skeleton:** npm-workspaces restructure (`git mv` website/src,
@@ -574,27 +576,52 @@ remains independently shippable and demoable.
 - **Phase 8 — Dashboards v1 + first reports:** widget framework, grid dashboards, risk/catalog/
   task widgets, PDF export pipeline, 3 parameterized reports. **← First sellable bundle.**
 
-### M3 — Deployment GA
-- **Phase 9 — On-prem Linux GA:** compose bundle, upgrade script + pre-upgrade dump, air-gap
+### M3 — Deployment GA + staging channel
+- **Phase 9 — On-prem Linux GA** ✅: compose bundle, upgrade script + pre-upgrade dump, air-gap
   image tarballs, install/upgrade/backup docs, versioned release process (GitHub Actions
   release workflow).
-- **Phase 10 — Cloud GA:** multi-tenant hardening (RLS backstop, rate limits), workspace
+- **Phase 10 — Staging build & feedback loop:** a continuously updated staging environment the
+  owner uses to hands-on test every phase and drive enhancements before anything is called done.
+  - **Staging image channel:** every push to the main branch builds and publishes
+    `ghcr.io/dregnargh/unisentinel:staging` (plus an immutable `:sha-<short>` tag) after the
+    CI boot test passes — the Phase 9 bundle pointed at `TAG=staging` becomes the staging
+    stack; `./upgrade.sh --version staging` re-pulls the latest build (`--skip-backup` is fine
+    on staging).
+  - **Demo seed command:** one command populates a fresh staging workspace with realistic data
+    in every licensed module (catalog services/assets, risks with treatments, tasks,
+    dashboards) so testing starts at "day 90", not from an empty screen; a staging license
+    helper signs a full-module license with the owner's dev keypair.
+  - **Enhancement loop (standing process from here on):** the owner tests each module on
+    staging and files enhancement notes; each subsequent phase BEGINS by clearing the accepted
+    enhancement backlog from the previous one. A module is "done" only after its staging
+    review round, not after its e2e suite.
+
+### M4 — Module build-out: every module, each with a staging review round
+Each module phase follows the §7.4 contract (standalone + integrations + fallbacks +
+promotion + widgets + reports + seeds) and ends the same way: **push → staging deploy →
+owner test pass → enhancement round → next module**.
+- **Phase 11 — Compliance** (requirement sources/libraries, policies + approval-gated
+  publication, control mappings, gaps) → staging review + enhancements.
+- **Phase 12 — Assessments** (templates, campaigns, scoring, evidence) + Compliance/Audit
+  hooks → staging review + enhancements.
+- **Phase 13 — Internal Audits** (universe, risk-based plans, engagements, workpapers,
+  findings, follow-up) → staging review + enhancements.
+- **Phase 14 — Management Hub** (objectives, committees/meetings/actions, executive dashboard,
+  board pack) → staging review + enhancements.
+- **Phase 15 — Cross-module polish round:** the accumulated staging feedback that spans
+  modules (navigation, dashboards, reports, promotion wizards) — the "walk the whole product"
+  release before widening deployment.
+
+### M5 — Cloud & enterprise depth
+- **Phase 16 — Cloud GA:** multi-tenant hardening (RLS backstop, rate limits), workspace
   provisioning flow, entitlement admin tooling, monitoring/alerting, restore drill.
-- **Phase 11 — SSO (OIDC) + API v1:** OIDC login + JIT provisioning; public REST API + tokens
+- **Phase 17 — SSO (OIDC) + API v1:** OIDC login + JIT provisioning; public REST API + tokens
   + OpenAPI docs + webhooks.
-
-### M4 — Module build-out (each: standalone + integrations + fallbacks + promotion + widgets + reports + seeds)
-- **Phase 12 — Compliance** (requirements, policies, mappings, gaps).
-- **Phase 13 — Assessments** (templates, campaigns, scoring) + Compliance/Audit hooks.
-- **Phase 14 — Internal Audits** (universe, plans, engagements, findings, follow-up).
-- **Phase 15 — Management Hub** (objectives, committees/meetings/actions, executive dashboard).
-
-### M5 — Enterprise depth
-- **Phase 16 — Windows Server native package** (services installer, upgrade script, docs) —
+- **Phase 18 — Windows Server native package** (services installer, upgrade script, docs) —
   CI has kept the code Windows-clean since Phase 0, so this phase is packaging, not porting.
-- **Phase 17 — Integration connectors:** Tenable/Qualys, asset/patch sources beyond CSV;
+- **Phase 19 — Integration connectors:** Tenable/Qualys, asset/patch sources beyond CSV;
   connector health UI.
-- **Phase 18 — Enterprise auth & admin:** SAML, SCIM, data-scopes enforcement, report
+- **Phase 20 — Enterprise auth & admin:** SAML, SCIM, data-scopes enforcement, report
   scheduling polish, per-workspace branding.
 
 ## 13. Open decisions
@@ -635,7 +662,7 @@ remains independently shippable and demoable.
   every module compounds the cost.
 - **Licensed-content legal risk** (unchanged from v1): ISO/AICPA text is copyrighted — ship
   codes + paraphrases; NIST is public domain. A compliance vendor cannot get this wrong.
-- **Tenant isolation** (cloud): app-level scoping until the RLS backstop lands (Phase 10);
+- **Tenant isolation** (cloud): app-level scoping until the RLS backstop lands (Phase 16);
   isolation tests are part of every module's definition-of-done from day one.
 - **Modified-Next dependency:** the product pins Next and upgrades deliberately; the
   `AGENTS.md` read-the-docs-first rule applies to `apps/grc` as it did to `website/`.
