@@ -40,4 +40,50 @@ export const tasksManifest: ModuleManifest = {
   },
   entityTypes: ["tasks:task", "tasks:activity"],
   emits: ["task.completed", "task.progress"],
+  widgets: [
+    {
+      key: "tasks.my",
+      title: "My open tasks",
+      description: "Your open tasks, soonest due first",
+      span: 2,
+      permission: "tasks.tasks.view",
+    },
+    {
+      key: "tasks.status",
+      title: "Task workload",
+      description: "Workspace task counts by status, with overdue",
+      span: 1,
+      permission: "tasks.tasks.view",
+    },
+  ],
+  reports: [
+    {
+      key: "tasks.status",
+      title: "Task status",
+      description: "All tasks with status, priority, assignee and origin, filterable by status and priority.",
+      permission: "tasks.tasks.view",
+      params: [
+        {
+          name: "status",
+          label: "Status",
+          options: [
+            { value: "all", label: "All statuses" },
+            { value: "open", label: "Open (to do / in progress / blocked)" },
+            { value: "done", label: "Done" },
+          ],
+        },
+        {
+          name: "priority",
+          label: "Priority",
+          options: [
+            { value: "all", label: "All priorities" },
+            { value: "urgent", label: "Urgent" },
+            { value: "high", label: "High" },
+            { value: "medium", label: "Medium" },
+            { value: "low", label: "Low" },
+          ],
+        },
+      ],
+    },
+  ],
 };

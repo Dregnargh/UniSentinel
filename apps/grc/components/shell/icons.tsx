@@ -67,3 +67,11 @@ export const BrandIcon = () => (
     <path d="M12 3.5c-2.5 2.4-2.5 14.6 0 17M12 3.5c2.5 2.4 2.5 14.6 0 17M4 9.5h16M4 14.5h16" />
   </svg>
 );
+
+export const ReportsIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" {...p}>
+    <path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+    <path d="M15 3v4h4" />
+    <path d="M9 17v-4M12 17v-7M15 17v-2.5" />
+  </svg>
+);

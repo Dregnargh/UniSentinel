@@ -24,6 +24,20 @@ export interface SessionContext {
   sessionId: string;
 }
 
+/**
+ * Whether the session cookie carries the Secure attribute. Defaults to true
+ * in production, but self-hosted instances served over plain HTTP on a LAN
+ * (no TLS terminator yet) MUST set COOKIE_SECURE=false — browsers refuse
+ * Secure cookies from non-HTTPS origins (localhost excepted), which would
+ * make login silently impossible.
+ */
+function cookieSecure(): boolean {
+  const override = process.env.COOKIE_SECURE;
+  if (override === "true") return true;
+  if (override === "false") return false;
+  return process.env.NODE_ENV === "production";
+}
+
 export async function createSession(userId: string): Promise<void> {
   const { db } = getDb();
   const h = await headers();
@@ -41,7 +55,7 @@ export async function createSession(userId: string): Promise<void> {
   const token = await signSessionToken(userId, sessionId);
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(),
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE,

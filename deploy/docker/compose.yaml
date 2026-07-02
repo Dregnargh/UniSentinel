@@ -31,6 +31,10 @@ services:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/unisentinel
       DATABASE_SSL: "false" # same-host container network; front TLS with a reverse proxy
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env (openssl rand -base64 32)}
+      # Keep true when a TLS reverse proxy fronts this stack. Set to false in
+      # .env ONLY for plain-HTTP LAN access — browsers refuse Secure cookies
+      # from non-HTTPS origins (localhost excepted) and login breaks.
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       FILE_STORAGE_PATH: /data/files
       LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}

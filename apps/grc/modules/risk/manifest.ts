@@ -38,4 +38,58 @@ export const riskManifest: ModuleManifest = {
   },
   entityTypes: ["risk:risk", "risk:treatment"],
   emits: ["risk.created", "risk.accepted", "risk.treatment.updated"],
+  widgets: [
+    {
+      key: "risk.bands",
+      title: "Open risks by band",
+      description: "Counts of open risks per severity band",
+      span: 1,
+      permission: "risk.risks.view",
+    },
+    {
+      key: "risk.heatmap",
+      title: "Risk heatmap",
+      description: "Likelihood × impact distribution of open risks",
+      span: 1,
+      permission: "risk.risks.view",
+    },
+    {
+      key: "risk.top",
+      title: "Top risks",
+      description: "Highest-scoring open risks",
+      span: 2,
+      permission: "risk.risks.view",
+    },
+  ],
+  reports: [
+    {
+      key: "risk.register",
+      title: "Risk register",
+      description: "The full register with inherent and residual scoring, filterable by status and band.",
+      permission: "risk.risks.view",
+      params: [
+        {
+          name: "status",
+          label: "Status",
+          options: [
+            { value: "all", label: "All statuses" },
+            { value: "open", label: "Open (draft / assessed / in treatment)" },
+            { value: "accepted", label: "Accepted" },
+            { value: "closed", label: "Closed" },
+          ],
+        },
+        {
+          name: "band",
+          label: "Inherent band",
+          options: [
+            { value: "all", label: "All bands" },
+            { value: "critical", label: "Critical" },
+            { value: "high", label: "High" },
+            { value: "medium", label: "Medium" },
+            { value: "low", label: "Low" },
+          ],
+        },
+      ],
+    },
+  ],
 };

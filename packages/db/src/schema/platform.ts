@@ -52,3 +52,38 @@ export const notifications = pgTable(
 );
 
 export type Notification = typeof notifications.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Dashboards. v1 ships the per-user home dashboard; the layout is an ordered
+// list of widget instances (widget keys come from module manifests). A row is
+// only written once the user customizes — until then the platform serves a
+// computed default, so newly licensed modules appear without a migration.
+// Shared/role dashboards (nullable owner + visibility) come with Management
+// Hub's executive dashboard.
+// ---------------------------------------------------------------------------
+
+export interface DashboardWidgetInstance {
+  /** Instance id (uuid) — layout entries are identified by this, not by
+   *  widget key, so the same widget could appear twice in later versions. */
+  id: string;
+  widgetKey: string;
+}
+
+export const dashboards = pgTable(
+  "dashboards",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    layout: jsonb("layout").$type<DashboardWidgetInstance[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [uniqueIndex("uq_dashboards_owner").on(t.workspaceId, t.ownerUserId)],
+);
+
+export type Dashboard = typeof dashboards.$inferSelect;

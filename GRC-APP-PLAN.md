@@ -146,7 +146,7 @@ Two supported paths, in order of preference:
 | File storage | Storage interface with **S3 driver + local-FS driver** (any S3-compatible endpoint works ⇒ MinIO supported) | One abstraction, three deployment models. |
 | Diagrams (network/data-flow) | **React Flow**; nodes/edges persisted as jsonb; MVP = auto-generated views from catalog relationships, manual editing later | Buying/building a full Visio clone is a trap; derive diagrams from structured data first. |
 | Charts | Recharts (or ECharts if dashboard needs outgrow it) | Declarative, fits the widget model. |
-| PDF/report export | Server-rendered print-CSS pages + **headless Chromium (Playwright)** in the worker | Highest-fidelity output, same engine in Docker image and Windows install; heavy dependency accepted (flagged in §13). |
+| PDF/report export | **pdfkit (pure JS)** for tabular reports (decided at Phase 8, see §13); print-CSS + headless Chromium reserved for later high-fidelity board packs | Zero native deps, identical output in Docker and native Windows, no 300MB browser in the install. |
 | Validation | zod (v4 already in use) shared between server actions and REST API | Existing convention. |
 | Licensing | **Ed25519-signed license files** for on-prem; DB entitlements for cloud; one entitlement service over both | Offline verification, no phone-home required (§6.6). |
 
@@ -601,8 +601,11 @@ remains independently shippable and demoable.
 
 1. **Windows native vs Docker-only at launch** — plan assumes Docker path is offered first
    and native lands in M5; if early Windows deals demand native sooner, swap Phase 16 forward.
-2. **PDF engine weight** — bundled Chromium adds ~300MB to images/installs; alternative
-   (lighter but lower fidelity) is a pure-JS PDF lib for tabular reports only. Decide at Phase 8.
+2. **PDF engine weight** — ~~Decide at Phase 8~~ **Decided (Phase 8): pure-JS pdfkit** for the
+   v1 tabular reports — zero native deps, identical output in Docker and native Windows, no
+   300MB Chromium in images/installs. The report-data contract (sections of stats + tables)
+   is renderer-agnostic, so a headless-Chromium print-CSS pipeline can be added later for
+   high-fidelity board packs without touching module report providers.
 3. **Diagram editing depth** — generated + position-override diagrams (planned) vs full
    free-form editor (big scope). Revisit after Catalog ships.
 4. **Billing automation for cloud** (Stripe etc.) — out of scope until M3; manual entitlements

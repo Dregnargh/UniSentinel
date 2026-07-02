@@ -41,4 +41,45 @@ export const catalogManifest: ModuleManifest = {
   },
   entityTypes: ["catalog:service", "catalog:asset"],
   emits: ["catalog.asset.created", "catalog.asset.updated"],
+  widgets: [
+    {
+      key: "catalog.inventory",
+      title: "Catalog inventory",
+      description: "Service and asset counts at a glance",
+      span: 1,
+      permission: "catalog.assets.view",
+    },
+  ],
+  reports: [
+    {
+      key: "catalog.inventory",
+      title: "Catalog inventory",
+      description: "Services and the asset inventory with classification and ownership, filterable by kind and asset type.",
+      permission: "catalog.assets.view",
+      params: [
+        {
+          name: "kind",
+          label: "Include",
+          options: [
+            { value: "all", label: "Services and assets" },
+            { value: "services", label: "Services only" },
+            { value: "assets", label: "Assets only" },
+          ],
+        },
+        {
+          name: "assetType",
+          label: "Asset type",
+          options: [
+            { value: "all", label: "All asset types" },
+            { value: "hardware", label: "Hardware" },
+            { value: "software", label: "Software" },
+            { value: "data", label: "Data" },
+            { value: "people", label: "People" },
+            { value: "facility", label: "Facility" },
+            { value: "cloud", label: "Cloud" },
+          ],
+        },
+      ],
+    },
+  ],
 };

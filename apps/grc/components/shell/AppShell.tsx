@@ -8,7 +8,7 @@ import { logout } from "@/platform/auth/actions";
 import type { InboxItem } from "@/platform/notify/queries";
 import { NotificationsBell } from "./NotificationsBell";
 import { AppDrawer, type DrawerModule } from "./AppDrawer";
-import { AuditIcon, BrandIcon, HomeIcon, KeyIcon, OrgIcon, RolesIcon, MailIcon, UsersIcon } from "./icons";
+import { AuditIcon, BrandIcon, HomeIcon, KeyIcon, OrgIcon, ReportsIcon, RolesIcon, MailIcon, UsersIcon } from "./icons";
 
 export interface ShellUser {
   name: string;
@@ -28,6 +28,7 @@ export interface ShellNavFlags {
   org: boolean;
   audit: boolean;
   settings: boolean;
+  reports: boolean;
 }
 
 export function AppShell({
@@ -143,6 +144,12 @@ export function AppShell({
             <HomeIcon />
             Home
           </Link>
+          {nav.reports && (
+            <Link href="/reports" className="shell__nav-item" data-active={isActive("/reports") || undefined}>
+              <ReportsIcon />
+              Reports
+            </Link>
+          )}
           {currentModule && (
             <>
               <div className="shell__nav-group">{currentModule.name}</div>

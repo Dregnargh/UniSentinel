@@ -8,7 +8,7 @@ import { getInbox } from "@/platform/notify/queries";
 import { getDb } from "@/platform/db";
 import { getEntitlements } from "@/platform/modules/entitlements";
 import { getBranding } from "@/platform/branding";
-import { MODULES } from "@/modules/registry";
+import { MODULES, allReports } from "@/modules/registry";
 import { AppShell } from "@/components/shell/AppShell";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,9 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
         org: permitted(permissions, P.orgView),
         audit: permitted(permissions, P.auditView),
         settings: permitted(permissions, P.settingsManage),
+        reports: allReports().some(
+          (r) => entitlements.get(r.moduleKey)?.status === "active" && permitted(permissions, r.permission),
+        ),
       }}
       inbox={inbox}
       modules={MODULES.map((m) => {

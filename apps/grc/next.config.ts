@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
   // @unisentinel/db ships TypeScript source (no build step); Next transpiles it.
   transpilePackages: ["@unisentinel/db"],
+  // pdfkit loads its font metrics (.afm) from disk relative to __dirname —
+  // bundling breaks that path. Keep it a runtime require; the file tracer
+  // then ships the whole package (fonts included) in the standalone output.
+  serverExternalPackages: ["pdfkit"],
 };
 
 export default nextConfig;
