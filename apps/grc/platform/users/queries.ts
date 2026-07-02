@@ -7,7 +7,6 @@ export interface WorkspaceUser {
   id: string;
   name: string;
   email: string;
-  role: string;
   active: boolean;
   mustChangePassword: boolean;
   totpEnabled: boolean;
@@ -21,7 +20,6 @@ export async function listWorkspaceUsers(workspaceId: string): Promise<Workspace
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
       active: users.active,
       mustChangePassword: users.mustChangePassword,
       totpEnabled: users.totpEnabled,

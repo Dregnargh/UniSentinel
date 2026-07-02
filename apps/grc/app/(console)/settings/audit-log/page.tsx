@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/platform/auth/session";
+import { requirePermission } from "@/platform/rbac/guard";
+import { P } from "@/platform/rbac/catalog";
 import { listAuditEntityTypes, listAuditLog } from "@/platform/audit";
 import { AuditLogClient } from "./AuditLogClient";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AuditLogPage(props: {
   searchParams: Promise<{ page?: string; entityType?: string }>;
 }) {
-  const { user } = await requireAdmin();
+  const { user } = await requirePermission(P.auditView);
   const sp = await props.searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const entityType = sp.entityType || undefined;

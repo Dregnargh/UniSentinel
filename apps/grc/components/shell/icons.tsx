@@ -39,3 +39,17 @@ export const GridIcon = () => (
     <circle cx="5" cy="19" r="1.6" /><circle cx="12" cy="19" r="1.6" /><circle cx="19" cy="19" r="1.6" />
   </svg>
 );
+
+export const RolesIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" {...p}>
+    <path d="M12 3 4.5 6v5c0 4.6 3.2 8.2 7.5 10 4.3-1.8 7.5-5.4 7.5-10V6L12 3Z" />
+    <path d="m9 12 2 2 4-4.5" />
+  </svg>
+);
+
+export const MailIcon = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m4 7 8 6 8-6" />
+  </svg>
+);

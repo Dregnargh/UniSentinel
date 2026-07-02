@@ -6,7 +6,8 @@ import { z } from "zod";
 import { orgUnits } from "@unisentinel/db";
 import { getDb } from "../db";
 import { logAudit } from "../audit";
-import { requireAdmin } from "../auth/session";
+import { guardAction } from "../rbac/guard";
+import { P } from "../rbac/catalog";
 import type { ActionState } from "../auth/actions";
 
 const firstError = (e: z.ZodError): string => e.issues[0]?.message ?? "Please check the form.";
@@ -31,7 +32,9 @@ const createSchema = z.object({
 });
 
 export async function createOrgUnit(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { user: actor } = await requireAdmin();
+  const gate = await guardAction(P.orgManage);
+  if ("error" in gate) return gate;
+  const actor = gate.user;
   const parsed = createSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;
@@ -72,7 +75,9 @@ const updateSchema = z.object({
 });
 
 export async function updateOrgUnit(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { user: actor } = await requireAdmin();
+  const gate = await guardAction(P.orgManage);
+  if ("error" in gate) return gate;
+  const actor = gate.user;
   const parsed = updateSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const target = await unitInWorkspace(parsed.data.unitId, actor.workspaceId);
@@ -100,7 +105,9 @@ export async function updateOrgUnit(_prev: ActionState, formData: FormData): Pro
 }
 
 export async function deleteOrgUnit(unitId: string): Promise<ActionState> {
-  const { user: actor } = await requireAdmin();
+  const gate = await guardAction(P.orgManage);
+  if ("error" in gate) return gate;
+  const actor = gate.user;
   const target = await unitInWorkspace(unitId, actor.workspaceId);
   if (!target) return { error: "Unit not found." };
 

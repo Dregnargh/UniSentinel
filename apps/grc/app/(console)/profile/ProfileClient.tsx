@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useActionState, useTransition } from "react";
-import { Alert, Badge, Button, Card, Input, Modal, Table } from "@unisentinel/ui";
+import { Alert, Badge, Button, Card, Input, Modal, Switch, Table } from "@unisentinel/ui";
 import type { ActionState } from "@/platform/auth/actions";
+import { setEmailNotifications } from "@/platform/notify/actions";
 import {
   beginTotpEnrollment,
   confirmTotpEnrollment,
@@ -28,7 +29,13 @@ export function ProfileClient({
   user,
   sessions,
 }: {
-  user: { name: string; email: string; role: string; totpEnabled: boolean };
+  user: {
+    name: string;
+    email: string;
+    roleNames: string[];
+    totpEnabled: boolean;
+    emailNotifications: boolean;
+  };
   sessions: SessionRow[];
 }) {
   return (
@@ -36,15 +43,46 @@ export function ProfileClient({
       <div className="page-head">
         <div>
           <h1>My profile</h1>
-          <p>
-            {user.email} · <Badge tone={user.role === "admin" ? "brand" : "neutral"}>{user.role}</Badge>
+          <p style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            {user.email}
+            {user.roleNames.map((r) => (
+              <Badge key={r} tone={r === "Administrator" ? "brand" : "neutral"}>
+                {r}
+              </Badge>
+            ))}
           </p>
         </div>
       </div>
       <NameCard name={user.name} />
+      <NotificationsCard emailNotifications={user.emailNotifications} />
       <TwoFactorCard enabled={user.totpEnabled} />
       <SessionsCard sessions={sessions} />
     </div>
+  );
+}
+
+function NotificationsCard({ emailNotifications }: { emailNotifications: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const toggle = (enabled: boolean) =>
+    startTransition(async () => {
+      await setEmailNotifications(enabled);
+    });
+  return (
+    <Card>
+      <Card.Header>
+        <Card.Title subtitle="In-app notifications are always on; email delivery is your choice">
+          Notifications
+        </Card.Title>
+      </Card.Header>
+      <Card.Body>
+        <Switch
+          defaultChecked={emailNotifications}
+          disabled={pending}
+          onChange={(e) => toggle(e.target.checked)}
+          label="Also send my notifications by email"
+        />
+      </Card.Body>
+    </Card>
   );
 }
 

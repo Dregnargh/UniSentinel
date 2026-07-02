@@ -22,6 +22,7 @@ import {
 } from "./password";
 import { hashRecoveryCode, verifyTotp } from "./totp";
 import { createSession, destroySession, requireSession } from "./session";
+import { assignRole, createSystemRoles } from "../roles/system";
 
 export type ActionState = { ok?: boolean; error?: string };
 
@@ -72,11 +73,12 @@ export async function setupInstance(_prev: ActionState, formData: FormData): Pro
       name: d.name,
       email: d.email.toLowerCase(),
       passwordHash: await hashPassword(d.password),
-      role: "admin",
       active: true,
       createdAt: now,
       updatedAt: now,
     });
+    const { adminRoleId } = await createSystemRoles(tx, workspaceId);
+    await assignRole(tx, workspaceId, userId, adminRoleId);
   });
   await logAudit({
     workspaceId,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/platform/auth/session";
+import { requirePermission } from "@/platform/rbac/guard";
+import { P } from "@/platform/rbac/catalog";
 import { buildOrgTree, listOrgUnits } from "@/platform/org/queries";
 import { OrgUnitsClient, type OrgUnitRow } from "./OrgUnitsClient";
 
@@ -7,7 +8,7 @@ export const metadata: Metadata = { title: "Organization" };
 export const dynamic = "force-dynamic";
 
 export default async function OrgUnitsPage() {
-  const { user } = await requireAdmin();
+  const { user } = await requirePermission(P.orgView);
   const rows = await listOrgUnits(user.workspaceId);
   const tree = buildOrgTree(rows);
 

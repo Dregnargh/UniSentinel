@@ -4,6 +4,8 @@
 import PgBoss from "pg-boss";
 import { createDb, createPool, instanceMeta, sslConfig } from "@unisentinel/db";
 import { createLogger } from "../platform/log";
+import { sendMailNow } from "../platform/notify/mail";
+import { EMAIL_QUEUE, type EmailJob } from "../platform/notify/queue";
 
 const log = createLogger("worker");
 
@@ -41,7 +43,20 @@ async function main() {
     log.debug("heartbeat");
   });
 
-  log.info("worker started", { queues: [HEARTBEAT_QUEUE] });
+  // Notification emails, enqueued by the web tier; pg-boss retries failures.
+  await boss.createQueue(EMAIL_QUEUE).catch(() => {});
+  await boss.work<EmailJob>(EMAIL_QUEUE, async (jobs) => {
+    for (const job of jobs) {
+      await sendMailNow(job.data.workspaceId, {
+        to: job.data.to,
+        subject: job.data.subject,
+        text: job.data.text,
+      });
+      log.info("email sent", { to: job.data.to, subject: job.data.subject });
+    }
+  });
+
+  log.info("worker started", { queues: [HEARTBEAT_QUEUE, EMAIL_QUEUE] });
 
   let stopping = false;
   const shutdown = async (signal: string) => {

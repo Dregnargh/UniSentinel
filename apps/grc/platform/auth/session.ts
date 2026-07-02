@@ -14,9 +14,9 @@ export interface CurrentUser {
   workspaceId: string;
   name: string;
   email: string;
-  role: string;
   mustChangePassword: boolean;
   totpEnabled: boolean;
+  emailNotifications: boolean;
 }
 
 export interface SessionContext {
@@ -63,10 +63,10 @@ export async function getSession(): Promise<SessionContext | null> {
       workspaceId: users.workspaceId,
       name: users.name,
       email: users.email,
-      role: users.role,
       active: users.active,
       mustChangePassword: users.mustChangePassword,
       totpEnabled: users.totpEnabled,
+      emailNotifications: users.emailNotifications,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -98,9 +98,9 @@ export async function getSession(): Promise<SessionContext | null> {
       workspaceId: row.workspaceId,
       name: row.name,
       email: row.email,
-      role: row.role,
       mustChangePassword: row.mustChangePassword,
       totpEnabled: row.totpEnabled,
+      emailNotifications: row.emailNotifications,
     },
   };
 }
@@ -109,13 +109,6 @@ export async function getSession(): Promise<SessionContext | null> {
 export async function requireSession(): Promise<SessionContext> {
   const ctx = await getSession();
   if (!ctx) redirect("/login");
-  return ctx;
-}
-
-/** Admin or bust. Role comes from the fresh DB read in getSession(). */
-export async function requireAdmin(): Promise<SessionContext> {
-  const ctx = await requireSession();
-  if (ctx.user.role !== "admin") redirect("/");
   return ctx;
 }
 

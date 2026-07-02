@@ -52,9 +52,8 @@ export const users = pgTable(
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
-    // Placeholder authorization model (admin | member) until the RBAC engine
-    // (roles/user_roles + permission catalog) replaces it in Phase 2.
-    role: text("role").notNull().default("member"),
+    // Email delivery preference for notifications (in-app inbox is always on).
+    emailNotifications: boolean("email_notifications").notNull().default(true),
     active: boolean("active").notNull().default(true),
     mustChangePassword: boolean("must_change_password").notNull().default(false),
     // TOTP 2FA. A non-null secret with totp_enabled=false is a pending

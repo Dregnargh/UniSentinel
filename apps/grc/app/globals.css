@@ -320,3 +320,121 @@ a {
   font-family: var(--us-font-mono);
   font-size: var(--us-text-sm);
 }
+
+/* ---- Notifications bell --------------------------------------------------- */
+
+.shell__bell-wrap {
+  position: relative;
+}
+
+.shell__bell {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--us-radius-md);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  position: relative;
+}
+
+.shell__bell:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.shell__bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--us-radius-pill);
+  background: var(--us-danger-500, #d33);
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--us-weight-bold);
+  display: grid;
+  place-items: center;
+}
+
+.shell__menu--wide {
+  min-width: 320px;
+  max-width: 380px;
+}
+
+.shell__inbox {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.shell__inbox li > a,
+.shell__inbox li > div {
+  display: block;
+  padding: var(--us-space-2) var(--us-space-3);
+  border-radius: var(--us-radius-md);
+  text-decoration: none;
+  color: var(--us-color-text);
+}
+
+.shell__inbox li > a:hover {
+  background: var(--us-color-bg-subtle);
+}
+
+.shell__inbox li[data-unread] .shell__inbox-title {
+  font-weight: var(--us-weight-semibold);
+}
+
+.shell__inbox-title {
+  display: block;
+  font-size: var(--us-text-sm);
+}
+
+.shell__inbox-body {
+  display: block;
+  font-size: var(--us-text-xs);
+  color: var(--us-color-text-muted);
+}
+
+/* ---- Role builder ---------------------------------------------------------- */
+
+.perm-group {
+  border: 1px solid var(--us-color-border);
+  border-radius: var(--us-radius-md);
+  padding: var(--us-space-3) var(--us-space-4);
+  margin: 0;
+}
+
+.perm-group legend {
+  font-size: var(--us-text-sm);
+  font-weight: var(--us-weight-semibold);
+  color: var(--us-color-heading);
+  padding: 0 var(--us-space-1);
+}
+
+.perm-resource {
+  padding: var(--us-space-2) 0;
+  border-top: 1px solid var(--us-color-border);
+}
+
+.perm-resource:first-of-type {
+  border-top: 0;
+}
+
+.perm-resource__label {
+  font-size: var(--us-text-sm);
+  font-weight: var(--us-weight-medium);
+  color: var(--us-color-heading);
+  margin-bottom: var(--us-space-2);
+}
+
+.perm-resource__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--us-space-1) var(--us-space-4);
+}

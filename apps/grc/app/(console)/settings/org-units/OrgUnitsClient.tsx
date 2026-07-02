@@ -94,7 +94,7 @@ export function OrgUnitsClient({ units }: { units: OrgUnitRow[] }) {
           )}
         </Card.Body>
       </Card>
-      <EditUnitModal target={editTarget} onClose={() => setEditTarget(null)} />
+      <EditUnitModal key={editTarget?.id ?? "none"} target={editTarget} onClose={() => setEditTarget(null)} />
     </div>
   );
 }

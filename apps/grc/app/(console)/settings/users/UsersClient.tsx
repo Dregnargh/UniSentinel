@@ -2,30 +2,49 @@
 
 import * as React from "react";
 import { useActionState, useTransition } from "react";
-import { Alert, Badge, Button, Card, Input, Modal, Select, Table } from "@unisentinel/ui";
+import { Alert, Badge, Button, Card, Checkbox, Input, Modal, Table } from "@unisentinel/ui";
 import type { ActionState } from "@/platform/auth/actions";
-import {
-  createWorkspaceUser,
-  deleteWorkspaceUser,
-  resetUserPassword,
-  setUserActive,
-  updateUserRole,
-} from "@/platform/users/actions";
+import { createWorkspaceUser, deleteWorkspaceUser, resetUserPassword, setUserActive } from "@/platform/users/actions";
+import { setUserRoles } from "@/platform/roles/actions";
+
+interface RoleOption {
+  id: string;
+  name: string;
+  isSystem: boolean;
+}
 
 interface MemberRow {
   id: string;
   name: string;
   email: string;
-  role: string;
   active: boolean;
   mustChangePassword: boolean;
   totpEnabled: boolean;
   createdAt: string;
+  roles: { id: string; name: string }[];
 }
 
-export function UsersClient({ meId, members }: { meId: string; members: MemberRow[] }) {
+interface Can {
+  create: boolean;
+  edit: boolean;
+  resetPassword: boolean;
+  del: boolean;
+}
+
+export function UsersClient({
+  meId,
+  can,
+  allRoles,
+  members,
+}: {
+  meId: string;
+  can: Can;
+  allRoles: RoleOption[];
+  members: MemberRow[];
+}) {
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [rolesTarget, setRolesTarget] = React.useState<MemberRow | null>(null);
   const [resetTarget, setResetTarget] = React.useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<MemberRow | null>(null);
 
@@ -40,11 +59,15 @@ export function UsersClient({ meId, members }: { meId: string; members: MemberRo
       <div className="page-head">
         <div>
           <h1>Users</h1>
-          <p>Accounts in this workspace. New users get a temporary password and must change it on first sign-in.</p>
+          <p>Accounts in this workspace. New users get the Member role and a temporary password.</p>
         </div>
-        <AddUserButton />
+        {can.create && <AddUserButton />}
       </div>
-      {error && <Alert tone="danger" onClose={() => setError(null)}>{error}</Alert>}
+      {error && (
+        <Alert tone="danger" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
       <Card>
         <Card.Body>
           <Table hoverable>
@@ -52,7 +75,7 @@ export function UsersClient({ meId, members }: { meId: string; members: MemberRo
               <Table.Row>
                 <Table.HeaderCell>Name</Table.HeaderCell>
                 <Table.HeaderCell>Email</Table.HeaderCell>
-                <Table.HeaderCell>Role</Table.HeaderCell>
+                <Table.HeaderCell>Roles</Table.HeaderCell>
                 <Table.HeaderCell>Status</Table.HeaderCell>
                 <Table.HeaderCell>2FA</Table.HeaderCell>
                 <Table.HeaderCell align="right">Actions</Table.HeaderCell>
@@ -71,7 +94,17 @@ export function UsersClient({ meId, members }: { meId: string; members: MemberRo
                   </Table.Cell>
                   <Table.Cell>{m.email}</Table.Cell>
                   <Table.Cell>
-                    <Badge tone={m.role === "admin" ? "brand" : "neutral"}>{m.role}</Badge>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {m.roles.length === 0 ? (
+                        <span className="muted">none</span>
+                      ) : (
+                        m.roles.map((r) => (
+                          <Badge key={r.id} tone={r.name === "Administrator" ? "brand" : "neutral"}>
+                            {r.name}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
                   </Table.Cell>
                   <Table.Cell>
                     {m.active ? (
@@ -89,34 +122,41 @@ export function UsersClient({ meId, members }: { meId: string; members: MemberRo
                       </Badge>
                     )}
                   </Table.Cell>
-                  <Table.Cell>{m.totpEnabled ? <Badge tone="success">on</Badge> : <span className="muted">off</span>}</Table.Cell>
+                  <Table.Cell>
+                    {m.totpEnabled ? <Badge tone="success">on</Badge> : <span className="muted">off</span>}
+                  </Table.Cell>
                   <Table.Cell align="right">
-                    {m.id !== meId && (
-                      <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={pending}
-                          onClick={() => run(() => updateUserRole(m.id, m.role === "admin" ? "member" : "admin"))}
-                        >
-                          {m.role === "admin" ? "Make member" : "Make admin"}
+                    <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      {can.edit && (
+                        <Button size="sm" variant="outline" onClick={() => setRolesTarget(m)}>
+                          Roles
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={pending}
-                          onClick={() => run(() => setUserActive(m.id, !m.active))}
-                        >
-                          {m.active ? "Deactivate" : "Activate"}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setResetTarget(m)}>
-                          Reset password
-                        </Button>
-                        <Button size="sm" variant="danger" onClick={() => setDeleteTarget(m)}>
-                          Delete
-                        </Button>
-                      </div>
-                    )}
+                      )}
+                      {m.id !== meId && (
+                        <>
+                          {can.edit && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={pending}
+                              onClick={() => run(() => setUserActive(m.id, !m.active))}
+                            >
+                              {m.active ? "Deactivate" : "Activate"}
+                            </Button>
+                          )}
+                          {can.resetPassword && (
+                            <Button size="sm" variant="ghost" onClick={() => setResetTarget(m)}>
+                              Reset password
+                            </Button>
+                          )}
+                          {can.del && (
+                            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(m)}>
+                              Delete
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </Table.Cell>
                 </Table.Row>
               ))}
@@ -124,7 +164,9 @@ export function UsersClient({ meId, members }: { meId: string; members: MemberRo
           </Table>
         </Card.Body>
       </Card>
-      <ResetPasswordModal target={resetTarget} onClose={() => setResetTarget(null)} />
+
+      <RolesModal key={rolesTarget?.id ?? "none"} target={rolesTarget} allRoles={allRoles} onClose={() => setRolesTarget(null)} />
+      <ResetPasswordModal key={resetTarget?.id ?? "none"} target={resetTarget} onClose={() => setResetTarget(null)} />
       <Modal open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} title="Delete user" size="sm">
         <Modal.Body>
           Permanently delete <strong>{deleteTarget?.email}</strong>? Their sessions end immediately.
@@ -150,6 +192,51 @@ export function UsersClient({ meId, members }: { meId: string; members: MemberRo
   );
 }
 
+function RolesModal({
+  target,
+  allRoles,
+  onClose,
+}: {
+  target: MemberRow | null;
+  allRoles: RoleOption[];
+  onClose: () => void;
+}) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(setUserRoles, {});
+  React.useEffect(() => {
+    if (state.ok) onClose();
+  }, [state.ok, onClose]);
+  return (
+    <Modal open={target !== null} onClose={onClose} title={`Roles — ${target?.email ?? ""}`} size="sm">
+      <form action={action}>
+        <Modal.Body>
+          <div className="form-grid">
+            {state.error && <Alert tone="danger">{state.error}</Alert>}
+            <input type="hidden" name="userId" value={target?.id ?? ""} />
+            {allRoles.map((r) => (
+              <Checkbox
+                key={r.id}
+                name="roleId"
+                value={r.id}
+                defaultChecked={target?.roles.some((tr) => tr.id === r.id) ?? false}
+                label={r.name}
+                description={r.isSystem ? "System role" : undefined}
+              />
+            ))}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" type="button" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={pending}>
+            Save roles
+          </Button>
+        </Modal.Footer>
+      </form>
+    </Modal>
+  );
+}
+
 function AddUserButton() {
   const [open, setOpen] = React.useState(false);
   const [state, action, pending] = useActionState<ActionState, FormData>(createWorkspaceUser, {});
@@ -170,11 +257,9 @@ function AddUserButton() {
               <Input id="new-email" name="email" type="email" required placeholder="jane@company.com" />
               <label htmlFor="new-password">Temporary password</label>
               <Input id="new-password" name="password" type="text" required minLength={12} placeholder="Share this with them securely" />
-              <label htmlFor="new-role">Role</label>
-              <Select id="new-role" name="role" defaultValue="member">
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
-              </Select>
+              <p className="muted" style={{ margin: 0, fontSize: "var(--us-text-sm)" }}>
+                They start with the Member role — assign more from the Roles button afterwards.
+              </p>
             </div>
           </Modal.Body>
           <Modal.Footer>
