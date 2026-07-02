@@ -562,3 +562,63 @@ a.shell__drawer-tile:hover {
   color: var(--us-color-primary);
   font-weight: var(--us-weight-medium);
 }
+
+/* ---- Task board -------------------------------------------------------------- */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--us-space-4);
+  align-items: start;
+}
+
+.board__col {
+  background: color-mix(in srgb, var(--us-color-border) 24%, transparent);
+  border-radius: var(--us-radius-lg);
+  padding: var(--us-space-3);
+  display: grid;
+  gap: var(--us-space-3);
+}
+
+.board__col-head {
+  font-size: var(--us-text-sm);
+  font-weight: var(--us-weight-semibold);
+  color: var(--us-color-heading);
+  padding: 0 var(--us-space-1);
+}
+
+.board__card {
+  background: #fff;
+  border: 1px solid var(--us-color-border);
+  border-radius: var(--us-radius-md);
+  box-shadow: var(--us-shadow-xs);
+  padding: var(--us-space-3);
+  display: grid;
+  gap: var(--us-space-2);
+}
+
+.board__card-title {
+  font-size: var(--us-text-sm);
+  font-weight: var(--us-weight-medium);
+  color: var(--us-color-heading);
+}
+
+.board__card-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.board__card-actions button {
+  border: 1px solid var(--us-color-border);
+  background: #fff;
+  border-radius: var(--us-radius-sm);
+  width: 28px;
+  height: 24px;
+  cursor: pointer;
+  color: var(--us-color-text);
+}
+
+.board__card-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

@@ -7,6 +7,12 @@ export const tasksManifest: ModuleManifest = {
     "Task management with light project capabilities — plans, assignments, kanban and calendar. The execution engine risk treatments, findings and gaps delegate to.",
   icon: "tasks",
   plannedPhase: 5,
+  navigation: [
+    { path: "", label: "My tasks" },
+    { path: "/all", label: "All tasks" },
+    { path: "/board", label: "Board" },
+    { path: "/activities", label: "Activities" },
+  ],
   permissions: {
     module: "tasks",
     label: "Tasks & Activities",
